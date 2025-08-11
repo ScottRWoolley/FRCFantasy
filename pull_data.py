@@ -37,3 +37,26 @@ def pull_year(year):
                 json.dump(data, json_file, indent=4)
 
             page_num += 1
+def pull_epa(year):
+    with open('data/teams.json', 'r') as file:
+        data = json.load(file)
+
+    keys = [int(team['key'][3:]) for team in data['teams']]
+
+    sb = statbotics.Statbotics()
+
+    all_team_data = []
+
+    for key in keys:
+        try:
+            team_data = sb.get_team_year(key,year)
+            print(team_data)
+            all_team_data.append(team_data)
+        except UserWarning as e:
+            print(f"Warning for team {key}: {e}")
+        except Exception as e:
+            # catch other unexpected errors
+            print(f"Error for team {key}: {e}")
+
+    with open("data/statbotics_data.json", "w") as json_file:
+        json.dump(all_team_data, json_file, indent=4)
