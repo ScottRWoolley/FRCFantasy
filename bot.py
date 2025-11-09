@@ -77,8 +77,9 @@ use ?pool [team_num] to add it to the pool'''
         with open("bible.json", "r") as f:
             data = json.load(f)
 
-        data[self.serverid] = self.players
-        
+        data[str(self.serverid)] = self.players
+        print(data)
+
         with open("bible.json", "w") as f:
             json.dump(data, f)
     
@@ -129,7 +130,7 @@ use ?pool [team_num] to add it to the pool'''
         await self.ctx.send("---------------------------------------")
     
     async def get_score(self):
-        scores = send.score(self.serverid)
+        scores = send.score(str(self.serverid))
         text = ""
         for player, teams in scores.items():
             text += f"{player}:\n"

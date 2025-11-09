@@ -10,13 +10,11 @@ def score(channel_id):
         data = json.load(f)
     with open(score_file_path, "r") as f:
         scores = json.load(f)
-
-    for msg_id, users in data.items():
-        if msg_id == channel_id:
-            for username, teams in users.items():
-                if username not in result:
-                    result[username] = {}
-                for team in teams:
-                    result[username][team] = scores[team]
+    users = data[channel_id]
+    for username, teams in users.items():
+        if username not in result:
+            result[username] = {}
+        for team in teams:
+            result[username][team] = scores[team]
     return result
 
