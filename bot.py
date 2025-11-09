@@ -3,6 +3,7 @@ from discord.ext import commands
 import random
 import json
 import asyncio
+from backend import send
 
 class Bot:
     def __init__(self, ctx):
@@ -21,6 +22,11 @@ class Bot:
     
     async def setup(self):
         await self.ctx.send("use ?maxpool [num] to set the maximum amount of teams one person can put in the auction pool (default 5)")
+        with open("bible.json", "r") as f:
+            data = json.load(f)
+
+        if str(self.serverid) in data.keys():
+            self.players = data[str(self.serverid)]
     
     async def setmaxpool(self, num):
         self.MAXPOOLTEAMS = num
@@ -65,15 +71,20 @@ use ?pool [team_num] to add it to the pool'''
 
         for team in pooledteams:
             await self.auction_team(team)
-            text = "current team rosters:\n"
+            text = "team rosters:\n"
             for player, teams in self.players.items():
-                text += f"{player}: {", ".join(teams)}\n"
+                text += f"{player}: {", ".join(list(map(lambda x: x[3:], teams)))}\n"
             await self.ctx.send(text)
             await self.line()
         
+        await self.ctx.send("The auction has ended!")
+        
         with open("bible.json", "r") as f:
             data = json.load(f)
-        data[self.serverid] = self.players
+
+        data[str(self.serverid)] = self.players
+        print(data)
+
         with open("bible.json", "w") as f:
             json.dump(data, f)
     
@@ -93,7 +104,7 @@ use ?pool [team_num] to add it to the pool'''
             await self.ctx.send(f"sold! team {team} for {self.current_bid} to {buyer}")
             self.money[buyer] -= self.current_bid
             await self.ctx.send(f"{buyer}, you now have {self.money[buyer]} scootbucks left")
-            self.players[buyer].append(team)
+            self.players[buyer].append("frc"+team)
         else:
             await self.ctx.send(f"oof no one wanted {team}")
         await self.line()
@@ -122,3 +133,14 @@ use ?pool [team_num] to add it to the pool'''
     
     async def line(self):
         await self.ctx.send("---------------------------------------")
+    
+    async def get_score(self):
+        scores = send.score(str(self.serverid))
+        text = ""
+        for player, teams in scores.items():
+            text += f"{player}:\n"
+            for team, score in teams.items():
+                text += f"Team {team[3:]}: {score}\n"
+            text += f"{player} total: {sum(teams.values())}\n"
+            text += "----------\n"
+        await self.ctx.send(text)

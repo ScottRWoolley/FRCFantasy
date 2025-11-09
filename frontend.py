@@ -97,7 +97,13 @@ def main():
             server_id = get_server_id(ctx)
 
             await runningGames[server_id].auction()
+    
+    @bot.command()
+    async def score(ctx):
+        if ctx.guild:
+            server_id = get_server_id(ctx)
 
+            await runningGames[server_id].get_score()
     bot.run(TOKEN)
     
 if __name__ == '__main__':
