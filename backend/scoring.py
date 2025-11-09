@@ -1,4 +1,6 @@
 import json
+import os
+import pull_data
 
 def get_scores(file_path, team_key):
     with open(file_path, "r") as f:
@@ -43,3 +45,42 @@ def get_scores(file_path, team_key):
             continue
 
     return scores
+
+def calculate_team_scores(team_list, event_key):
+    """
+    Calculate total scores for each team in team_list.
+    Returns a dictionary {team_key: total_score}.
+    """
+    all_scores = {}
+
+    for team in team_list:
+        # Pull event data
+        pull_data.event(team, event_key)
+
+        # Get match scores
+        file_path = f"data/{team}/{event_key}.json"
+        if not os.path.exists(file_path):
+            print(f"No data for {team}, skipping.")
+            continue
+
+        scores = get_scores(file_path, team)
+
+        # Calculate total score for this team
+        total_score = 0
+        for s in scores:
+            match_score = s["ally_score"] + s["rp"]
+            total_score += match_score
+
+        all_scores[team] = total_score
+        print(f"{team}: Total Score = {total_score}")
+
+    return all_scores
+
+
+
+def save_scores_dict(team_list, event_key, output_file="data/scores.json"):
+    score = calculate_team_scores(team_list,event_key)
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    with open(output_file, "w") as f:
+        json.dump(score, f, indent=4)
+    print(f"Saved all teams' total scores to {output_file}")
