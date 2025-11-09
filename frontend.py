@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from bot import Bot
+import json
 
 def main():
 
@@ -18,6 +19,9 @@ def main():
     bot = commands.Bot(command_prefix="?", intents=intents)
     client = discord.Client(intents=intents)
 
+    with open("team_keys.json", "r") as f:
+        valid_teams = json.load(f)
+
     runningGames = {}
 
     def get_server_id(ctx):
@@ -34,7 +38,7 @@ def main():
             server_id = get_server_id(ctx)
 
             runningGames[server_id] = Bot(ctx)
-            await ctx.send(f'done')
+            await runningGames[server_id].setup()
 
     @bot.command()
     async def maxpool(ctx, val):
@@ -65,11 +69,18 @@ def main():
     
     @bot.command()
     async def pool(ctx, team_num):
-        if ctx.guild:
+        if ctx.guild and team_num in valid_teams:
             server_id = get_server_id(ctx)
 
             await runningGames[server_id].addtopool(ctx, team_num)
     
+    @bot.command()
+    async def unpool(ctx, team_num):
+        if ctx.guild and team_num in valid_teams:
+            server_id = get_server_id(ctx)
+
+            await runningGames[server_id].unpool(ctx, team_num)
+
     @bot.command()
     async def auction(ctx):
         if ctx.guild:
