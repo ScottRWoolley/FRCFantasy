@@ -69,11 +69,12 @@ use ?pool [team_num] to add it to the pool'''
             for player, teams in self.players.items():
                 text += f"{player}: {", ".join(teams)}\n"
             await self.ctx.send(text)
+            await self.line()
         
-        with open("teamsfile.json", "r") as f:
+        with open("bible.json", "r") as f:
             data = json.load(f)
         data[self.serverid] = self.players
-        with open("teamsfile.json", "w") as f:
+        with open("bible.json", "w") as f:
             json.dump(data, f)
     
     async def auction_team(self, team):
@@ -84,7 +85,7 @@ use ?pool [team_num] to add it to the pool'''
 
         self.current_countdown = asyncio.create_task(self.countdown())
         while not await self.current_countdown:
-            await self.ctx.send(f"current price: {self.current_bid}; current buyer: {self.current_buyer}")
+            await self.ctx.send(f"{team}: current price: {self.current_bid}; current buyer: {self.current_buyer}")
             self.current_countdown = asyncio.create_task(self.countdown())
         
         if self.current_buyer:
@@ -95,6 +96,7 @@ use ?pool [team_num] to add it to the pool'''
             self.players[buyer].append(team)
         else:
             await self.ctx.send(f"oof no one wanted {team}")
+        await self.line()
 
     async def countdown(self):
         seconds = 15
@@ -117,3 +119,6 @@ use ?pool [team_num] to add it to the pool'''
             self.current_buyer = ctx.author.name
             if self.current_countdown:
                 self.current_countdown.cancel()
+    
+    async def line(self):
+        await self.ctx.send("---------------------------------------")
