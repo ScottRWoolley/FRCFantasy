@@ -22,6 +22,11 @@ class Bot:
     
     async def setup(self):
         await self.ctx.send("use ?maxpool [num] to set the maximum amount of teams one person can put in the auction pool (default 5)")
+        with open("bible.json", "r") as f:
+            data = json.load(f)
+
+        if str(self.serverid) in data.keys():
+            self.players = data[str(self.serverid)]
     
     async def setmaxpool(self, num):
         self.MAXPOOLTEAMS = num
