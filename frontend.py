@@ -59,6 +59,16 @@ def main():
                 await runningGames[server_id].bid(ctx, val)
             except:
                 pass
+    
+    @bot.command()
+    async def b(ctx, val):
+        if ctx.guild:
+            server_id = get_server_id(ctx)
+            try:
+                val = int(val)
+                await runningGames[server_id].bid(ctx, val)
+            except:
+                pass
 
     @bot.command()
     async def poolteams(ctx):
