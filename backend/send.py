@@ -14,10 +14,8 @@ def score(channel_id):
     for msg_id, users in data.items():
         if msg_id == channel_id:
             for username, teams in users.items():
-                pull_data.pull_teams(teams)
-                scoring.save_scores_dict(teams)
-                with open(score_file_path, "r") as f:
-                    scores = json.load(f)
+                scores = pull_data.pull_teams(teams)
+                scoring.save_scores_dict(scores)
                 if username not in result:
                     result[username] = {}
                 for team in teams:
