@@ -26,7 +26,7 @@ def main():
 
     def get_server_id(ctx):
         server_id = ctx.guild.id
-        return server_id
+        return str(server_id)
 
     @bot.event
     async def on_ready():
@@ -104,6 +104,21 @@ def main():
             server_id = get_server_id(ctx)
 
             await runningGames[server_id].get_score()
+
+    @bot.command()
+    async def reset(ctx):
+        if ctx.guild:
+            server_id = get_server_id(ctx)
+
+            await runningGames[server_id].reset()
+    
+    @bot.command()
+    async def helpplease(ctx):
+        if ctx.guild:
+            server_id = get_server_id(ctx)
+
+            await runningGames[server_id].help()
+
     bot.run(TOKEN)
     
 if __name__ == '__main__':
