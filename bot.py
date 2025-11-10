@@ -9,6 +9,7 @@ class Bot:
     def __init__(self, ctx):
         self.serverid = ctx.guild.id
         self.ctx = ctx
+        self.AUCTIONTIME = 10
         
     
     async def setup(self):
@@ -29,6 +30,7 @@ class Bot:
             for member in self.ctx.guild.members if not member.bot
         }
         self.MAXPOOLTEAMS = 5
+        self.auctioned = False
     
     async def setmaxpool(self, num):
         self.MAXPOOLTEAMS = num
@@ -61,6 +63,8 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
             await self.ctx.send("removed")
     
     async def auction(self):
+        if self.auctioned:
+            return
         pooledteams = sum(self.teampool.values(), [])
         random.seed()
         random.shuffle(pooledteams)
@@ -88,16 +92,17 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
 
         with open("bible.json", "w") as f:
             json.dump(data, f)
+        self.auctioned = True
     
     async def auction_team(self, team):
-        await self.ctx.send(f"now auctioning: {team}")
         self.current_bid = 5
         self.current_buyer = ""
-        await self.ctx.send(f"current price: {self.current_bid}")
+        m = await self.ctx.send(f"{team}: current price: {self.current_bid}; current buyer: {self.current_buyer}")
+        self.countdown_message = await self.ctx.send(f"Time left to bid: {self.AUCTIONTIME}")
 
         self.current_countdown = asyncio.create_task(self.countdown())
         while not await self.current_countdown:
-            await self.ctx.send(f"{team}: current price: {self.current_bid}; current buyer: {self.current_buyer}")
+            await m.edit(content=f"{team}: current price: {self.current_bid}; current buyer: {self.current_buyer}")
             self.current_countdown = asyncio.create_task(self.countdown())
         
         if self.current_buyer:
@@ -111,14 +116,13 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
         await self.line()
 
     async def countdown(self):
-        seconds = 10
-        message = await self.ctx.send(f"Time left to bid: {seconds}")
+        seconds = self.AUCTIONTIME
         try:
             while seconds > 0:
                 await asyncio.sleep(1)
                 seconds -= 1
-                await message.edit(content=f"Time left to bid: {seconds}")
-            await message.edit(content="Time expired")
+                await self.countdown_message.edit(content=f"Time left to bid: {seconds}")
+            await self.countdown_message.edit(content="Time expired")
             return True
         except asyncio.CancelledError:
             return False
@@ -129,6 +133,7 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
         if self.money[ctx.author.name] >= num and (num > self.current_bid or (self.current_bid == 5 and num >= self.current_bid and not self.current_buyer)):
             self.current_bid = num
             self.current_buyer = ctx.author.name
+            await ctx.message.delete()
             if self.current_countdown:
                 self.current_countdown.cancel()
     
@@ -161,6 +166,7 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
             for member in self.ctx.guild.members if not member.bot
         }
         await self.ctx.send("reset done")
+        self.auctioned = False
     
     async def help(self):
         message = '''use ?setup to setup the bot. if there was an existing auction result the bot will pull that
