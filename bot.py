@@ -9,24 +9,28 @@ class Bot:
     def __init__(self, ctx):
         self.serverid = ctx.guild.id
         self.ctx = ctx
-        # would probably be a lot better to make a player class but too late now
-        self.players = {
-            member.name: []
-            for member in ctx.guild.members if not member.bot
-        }
-        self.teampool = {
-            member.name: []
-            for member in ctx.guild.members if not member.bot
-        }
-        self.MAXPOOLTEAMS = 5
+        self.AUCTIONTIME = 10
+        
     
     async def setup(self):
-        await self.ctx.send("use ?maxpool [num] to set the maximum amount of teams one person can put in the auction pool (default 5)")
+        await self.ctx.send("use ?helpplease for a list of commands")
         with open("bible.json", "r") as f:
             data = json.load(f)
 
         if str(self.serverid) in data.keys():
             self.players = data[str(self.serverid)]
+        
+        # would probably be a lot better to make a player class but too late now
+        self.players = {
+            member.name: []
+            for member in self.ctx.guild.members if not member.bot
+        }
+        self.teampool = {
+            member.name: []
+            for member in self.ctx.guild.members if not member.bot
+        }
+        self.MAXPOOLTEAMS = 5
+        self.auctioned = False
     
     async def setmaxpool(self, num):
         self.MAXPOOLTEAMS = num
@@ -38,8 +42,7 @@ class Bot:
         authorpooledteams = self.teampool[author]
 
         message = f'''here are the current teams in the pool:\n{", ".join(pooledteams)}
-you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribute {self.MAXPOOLTEAMS-len(authorpooledteams)} more teams
-use ?pool [team_num] to add it to the pool'''
+you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribute {self.MAXPOOLTEAMS-len(authorpooledteams)} more teams'''
 
         await self.ctx.send(message)
     
@@ -60,6 +63,8 @@ use ?pool [team_num] to add it to the pool'''
             await self.ctx.send("removed")
     
     async def auction(self):
+        if self.auctioned:
+            return
         pooledteams = sum(self.teampool.values(), [])
         random.seed()
         random.shuffle(pooledteams)
@@ -87,16 +92,17 @@ use ?pool [team_num] to add it to the pool'''
 
         with open("bible.json", "w") as f:
             json.dump(data, f)
+        self.auctioned = True
     
     async def auction_team(self, team):
-        await self.ctx.send(f"now auctioning: {team}")
         self.current_bid = 5
         self.current_buyer = ""
-        await self.ctx.send(f"current price: {self.current_bid}")
+        m = await self.ctx.send(f"{team}: current price: {self.current_bid}; current buyer: {self.current_buyer}")
+        self.countdown_message = await self.ctx.send(f"Time left to bid: {self.AUCTIONTIME}")
 
         self.current_countdown = asyncio.create_task(self.countdown())
         while not await self.current_countdown:
-            await self.ctx.send(f"{team}: current price: {self.current_bid}; current buyer: {self.current_buyer}")
+            await m.edit(content=f"{team}: current price: {self.current_bid}; current buyer: {self.current_buyer}")
             self.current_countdown = asyncio.create_task(self.countdown())
         
         if self.current_buyer:
@@ -110,14 +116,13 @@ use ?pool [team_num] to add it to the pool'''
         await self.line()
 
     async def countdown(self):
-        seconds = 15
-        message = await self.ctx.send(f"Time left to bid: {seconds}")
+        seconds = self.AUCTIONTIME
         try:
             while seconds > 0:
                 await asyncio.sleep(1)
                 seconds -= 1
-                await message.edit(content=f"Time left to bid: {seconds}")
-            await message.edit(content="Time expired")
+                await self.countdown_message.edit(content=f"Time left to bid: {seconds}")
+            await self.countdown_message.edit(content="Time expired")
             return True
         except asyncio.CancelledError:
             return False
@@ -125,9 +130,10 @@ use ?pool [team_num] to add it to the pool'''
             self.current_countdown = False
     
     async def bid(self, ctx, num):
-        if self.money[ctx.author.name] >= num and (num > self.current_bid or (self.current_bid == 5 and num >= self.current_bid)):
+        if self.money[ctx.author.name] >= num and (num > self.current_bid or (self.current_bid == 5 and num >= self.current_bid and not self.current_buyer)):
             self.current_bid = num
             self.current_buyer = ctx.author.name
+            await ctx.message.delete()
             if self.current_countdown:
                 self.current_countdown.cancel()
     
@@ -144,3 +150,32 @@ use ?pool [team_num] to add it to the pool'''
             text += f"{player} total: {sum(teams.values())}\n"
             text += "----------\n"
         await self.ctx.send(text)
+    
+    async def reset(self):
+        with open("bible.json", "r") as f:
+            data = json.load(f)
+
+        if str(self.serverid) in data.keys():
+            del data[str(self.serverid)]
+        
+        with open("bible.json", "w") as f:
+            json.dump(data, f)
+        
+        self.players = {
+            member.name: []
+            for member in self.ctx.guild.members if not member.bot
+        }
+        await self.ctx.send("reset done")
+        self.auctioned = False
+    
+    async def help(self):
+        message = '''use ?setup to setup the bot. if there was an existing auction result the bot will pull that
+?maxpool [num]: set the max amount of teams each player can pool for the auction
+?poolteams: get a list of all teams in the pool
+?pool [team_num]: pool a team
+?unpool [team_num]: unpool a team you have pooled
+?auction: start the auction
+?b [num] or ?bid [num]: place a bid
+?score: see the scores
+?reset: reset the auction results'''
+        await self.ctx.send(message)
