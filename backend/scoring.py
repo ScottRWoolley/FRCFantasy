@@ -1,6 +1,5 @@
 import json
 import os
-from backend import pull_data
 
 def get_scores(team_key, comp):
     file_path = f"data/{team_key}/{comp}.json"
