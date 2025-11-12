@@ -4,6 +4,7 @@ import random
 import json
 import asyncio
 from backend import send
+import math
 
 class Bot:
     def __init__(self, ctx):
@@ -78,7 +79,7 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
             await self.auction_team(team)
             text = "team rosters:\n"
             for player, teams in self.players.items():
-                text += f"{player}: {", ".join(list(map(lambda x: x[3:], teams)))}\n"
+                text += f"{player} - {self.money[player]}: {", ".join(list(map(lambda x: x[3:], teams)))}\n"
             await self.ctx.send(text)
             await self.line()
         
@@ -95,22 +96,26 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
         self.auctioned = True
     
     async def auction_team(self, team):
-        self.current_bid = 5
-        self.current_buyer = ""
-        m = await self.ctx.send(f"{team}: current price: {self.current_bid}; current buyer: {self.current_buyer}")
+        self.bid_history = [{"buyer": "", "price": 0}]
+
+        m = await self.ctx.send(f"{team}: current price: {self.bid_history[0]["price"]}; current buyer: {self.bid_history[0]["buyer"]}")
         self.countdown_message = await self.ctx.send(f"Time left to bid: {self.AUCTIONTIME}")
 
         self.current_countdown = asyncio.create_task(self.countdown())
         while not await self.current_countdown:
-            await m.edit(content=f"{team}: current price: {self.current_bid}; current buyer: {self.current_buyer}")
+            await m.edit(content=f"{team}: current price: {self.bid_history[0]["price"]}; current buyer: {self.bid_history[0]["buyer"]}")
             self.current_countdown = asyncio.create_task(self.countdown())
         
-        if self.current_buyer:
-            buyer = self.current_buyer
-            await self.ctx.send(f"sold! team {team} for {self.current_bid} to {buyer}")
-            self.money[buyer] -= self.current_bid
-            await self.ctx.send(f"{buyer}, you now have {self.money[buyer]} scootbucks left")
+        if buyer := self.bid_history[0]["buyer"]:
+            self.money[buyer] -= self.bid_history[0]["price"]
+            await self.ctx.send(f"sold! team {team} for {self.bid_history[0]["price"]} to {buyer}")
             self.players[buyer].append("frc"+team)
+
+            if loser := self.bid_history[1]["buyer"]:
+                if loser != buyer:
+                    self.money[loser] -= math.floor(self.bid_history[1]["price"]/2)
+                    await self.ctx.send(f'''{loser} it's called first robotics competition not second robotics competition
+looks like you'll have to pay {math.floor(self.bid_history[1]["price"]/2)} scootbucks''')
         else:
             await self.ctx.send(f"oof no one wanted {team}")
         await self.line()
@@ -130,10 +135,16 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
             self.current_countdown = False
     
     async def bid(self, ctx, num):
-        if self.money[ctx.author.name] >= num and (num > self.current_bid or (self.current_bid == 5 and num >= self.current_bid and not self.current_buyer)):
-            self.current_bid = num
-            self.current_buyer = ctx.author.name
-            await ctx.message.delete()
+        await ctx.message.delete()
+        if self.money[ctx.author.name] >= num and (
+            num > self.bid_history[0]["price"]
+              or (
+                self.bid_history[0]["price"] == 5
+                and num >= self.bid_history[0]["price"]
+                and not self.bid_history[0]["buyer"]
+                )
+            ):
+            self.bid_history.insert(0, {"buyer": ctx.author.name, "price": num})
             if self.current_countdown:
                 self.current_countdown.cancel()
     

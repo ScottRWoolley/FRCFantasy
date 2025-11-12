@@ -2,7 +2,7 @@ import requests
 import json
 import os
 import time
-import scoring
+from backend import scoring
 
 
 def find_events(team_key, year):
