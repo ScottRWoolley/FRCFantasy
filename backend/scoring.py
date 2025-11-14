@@ -7,52 +7,41 @@ def get_scores(team_key, comp):
     with open(file_path, "r") as f:
         matches = json.load(f)
 
-    scores = []
+    total = 0.0
 
     for match in matches:
         try:
+            if match.get("comp_level") != "qm":
+                continue
             alliances = match["alliances"]
             breakdown = match.get("score_breakdown", {})
+            winning = match.get("winning_alliance")
 
             if team_key in alliances["red"]["team_keys"]:
                 side = "red"
-                other = "blue"
             elif team_key in alliances["blue"]["team_keys"]:
                 side = "blue"
-                other = "red"
             else:
                 continue
 
-            ally_score = alliances[side]["score"]
-            opponent_score = alliances[other]["score"]
+            auto_score = breakdown[side]["autoPoints"]
+            total_points = breakdown[side]["totalPoints"]
+            rp = breakdown[side]["rp"]
+            win = 1 if winning == side else 0
 
-            side_breakdown = breakdown.get(side, {})
-            rp = (
-                side_breakdown.get("rp") or
-                side_breakdown.get("ranking_points") or
-                side_breakdown.get("bonus_rp") or
-                0
-            )
+            # weighted formula
+            weighted_score = (auto_score * 0.15) + (total_points * 0.10) + (rp * 0.80) + win
+            total += weighted_score
 
-            scores.append({
-                "match_key": match.get("key", "unknown"),
-                "ally_score": ally_score,
-                "opponent_score": opponent_score,
-                "rp": rp
-            })
-        except KeyError:
+        except Exception:
             continue
 
-    return scores
+    return round(total, 2)
 
 def calculate_team_scores(team, event):
 
     folder_path = f"data/{team}/"
-    total_score = 0
-    scores = get_scores(team, event)
-    for s in scores:
-        match_score = s["ally_score"] + s["rp"]
-        total_score += match_score
+    total_score = get_scores(team, event)
 
     print(f"{team}: Total Score = {total_score}")
 
