@@ -2,12 +2,13 @@ import discord
 from discord.ext import commands
 from bot import Bot
 import json
+import os
 
 def main():
 
-    file = open('token.txt','r')
-    content = file.read()
-    file.close()
+
+    content = os.getenv("DISCORD_TOKEN")
+
 
     TOKEN = content
 
