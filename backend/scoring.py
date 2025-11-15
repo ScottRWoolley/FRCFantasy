@@ -16,7 +16,7 @@ R4 = 60
 R5 = 80
 COMP_WIN_BONUS = 20
 
-with open("all_events.json", "r") as f:
+with open("jsons/all_events.json", "r") as f:
     ALL_EVENTS = json.load(f)
 
 def get_scores(team_key):
