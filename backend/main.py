@@ -1,5 +1,5 @@
-import pull_data
-import scoring
+from backend import pull_data
+from backend import scoring
 import json
 import send
 import os
