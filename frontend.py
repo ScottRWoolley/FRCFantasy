@@ -141,7 +141,7 @@ def main():
 
             utils.update_json("jsons/webhook_urls.json", {server_id: webhook_url})
             if send.send_webhook("test test", webhook_url):
-                await ctx.send("you are now breathing manually\n")
+                await ctx.send("you are now breathing manually")
             else:
                 await ctx.send("hmm something went wrong")
 

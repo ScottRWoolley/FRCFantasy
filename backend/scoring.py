@@ -16,7 +16,7 @@ R4 = 60
 R5 = 80
 COMP_WIN_BONUS = 20
 
-with open("all_events.json", "r") as f:
+with open("jsons/all_events.json", "r") as f:
     ALL_EVENTS = json.load(f)
 
 def get_scores(team_key):
@@ -55,7 +55,7 @@ def calculate_team_scores(teams):
     return team_scores
 
 
-def save_scores_dict(scorelist, output_file="scores.json"):
+def save_scores_dict(scorelist, output_file="jsons/scores.json"):
     with open(output_file, "r") as f:
         data = json.load(f)
     new_data = data | scorelist
@@ -117,7 +117,7 @@ def calc_all_teams():
     save_scores_dict(scores)
 
 def update_teams(teams, match):
-    with open("all_teams.json", "r") as f:
+    with open("jsons/all_teams.json", "r") as f:
         all_teams = json.load(f)
     
     t = set(all_teams).intersection(set(teams))
