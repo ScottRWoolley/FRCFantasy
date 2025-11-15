@@ -36,7 +36,7 @@ def calculate_team_scores(teams):
     return team_scores
 
 
-def save_scores_dict(scorelist, output_file="data/scores.json"):
+def save_scores_dict(scorelist, output_file="scores.json"):
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     with open(output_file, "r") as f:
         data = json.load(f)
