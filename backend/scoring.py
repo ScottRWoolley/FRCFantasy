@@ -47,17 +47,28 @@ def save_scores_dict(scorelist, output_file="data/scores.json"):
 
 def calculate_match_score(match, color):
     breakdown = match.get("score_breakdown", {})
+    if not breakdown:
+        return match["alliances"][color]["score"] * 0.1
     winning = match.get("winning_alliance")
 
     auto_score = breakdown[color]["autoPoints"]
-    total_points = breakdown[color]["totalPoints"]
+    tele_points = breakdown[color]["teleopPoints"]
     rp = breakdown[color]["rp"]
     win = 1 if winning == color else 0
 
     # weighted formula
-    weighted_score = (auto_score * 0.15) + (total_points * 0.10) + (rp * 0.80) + win
-    return weighted_score
+    weighted_score = (auto_score * 0.15) + (tele_points * 0.10) + (rp * 0.80) + win
+    return round(weighted_score, 2)
 
+def calc_tim_scores(match):
+    alliances = match["alliances"]
+    scores = {}
+    for color in ["blue", "red"]:
+        alliance_score = calculate_match_score(match, color)
+        teams = alliances[color]["teams"]
+        for team in teams:
+            scores[team] = alliance_score
+    return scores
 
 def calc_all_teams():
     with open("all_teams.json", "r") as f:
@@ -67,11 +78,12 @@ def calc_all_teams():
     save_scores_dict(scores)
 
 
-def update_teams(teams):
+def update_teams(teams, match):
     with open("all_teams.json", "r") as f:
         all_teams = json.load(f)
     
     t = set(all_teams).intersection(set(teams))
     scores = calculate_team_scores(list(t))
     save_scores_dict(scores)
-    return scores
+    tim_scores = calc_tim_scores(match)
+    return tim_scores

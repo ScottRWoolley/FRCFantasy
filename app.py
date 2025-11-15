@@ -27,4 +27,4 @@ async def get_updates(request: Update):
         print("error")
         return
     
-    send.send_score_updates(teams)
+    send.send_score_updates(teams, update["message_data"]["match"])
