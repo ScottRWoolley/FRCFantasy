@@ -5,7 +5,7 @@ import requests
 file_path = "bible.json"
 score_file_path = "data/scores.json"
 
-def score(channel_id):
+def score(channel_id): 
     result = {}
     with open(file_path, "r") as f:
         data = json.load(f)
@@ -21,8 +21,8 @@ def score(channel_id):
             result[username][team] = scores[team]
     return result
 
-def send_score_updates(teams):
-    scores = scoring.update_teams(teams)
+def send_score_updates(teams, match):
+    scores = scoring.update_teams(teams, match)
 
     with open("webhook_urls.json", "r") as f:
         webhook_urls = json.load(f)

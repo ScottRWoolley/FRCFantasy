@@ -1,3 +1,4 @@
+import requests
 import json
 import os
 import time
@@ -74,6 +75,7 @@ def read_events(file_path):
 
 
 def pull_team_matches(team_key):
+    import requests
     tba_key = os.getenv("TBA_KEY")
     year = "2025"
     headers = {'X-TBA-Auth-Key': tba_key}
