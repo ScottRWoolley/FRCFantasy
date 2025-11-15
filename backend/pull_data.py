@@ -1,7 +1,6 @@
 import json
 import os
 import time
-from backend import scoring
 
 
 def find_events(team_key, year):
@@ -68,31 +67,24 @@ def event(team_key, event_key):
         return 1
 
 
-
 def read_events(file_path):
     with open(file_path, 'r') as f:
         events = json.load(f)
     return events
 
-def pull_teams(team_list):
+
+def pull_team_matches(team_key):
+    tba_key = os.getenv("TBA_KEY")
     year = "2025"
-    team_scores = {}
+    headers = {'X-TBA-Auth-Key': tba_key}
 
-    with open("data/scores.json", "r") as f:
-        data = json.load(f)
+    url = f"https://www.thebluealliance.com/api/v3/team/{team_key}/matches/{year}"
+    response = requests.get(url, headers=headers)
 
-    for team in team_list:
-        find_events(team, year)
-        events_data = read_events(f"data/{team}/{year}.json")
-        team_score = 0
-        for e in events_data:
-            if e['event_type'] == 0:
-                repeat = event(team, e['key'])
-                print(repeat)
-                team_score += scoring.calculate_team_scores(team, e['key'])
-        team_scores[team] = team_score
-    return team_scores
+    if response.status_code == 200:
+        matches = response.json()
+        return matches
 
-
-
-
+    else:
+        print(f"Error {response.status_code}: {response.text}")
+        return False

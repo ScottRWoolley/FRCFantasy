@@ -5,10 +5,11 @@ import json
 import asyncio
 from backend import send
 import math
+import utils
 
 class Bot:
     def __init__(self, ctx):
-        self.serverid = ctx.guild.id
+        self.serverid = str(ctx.guild.id)
         self.ctx = ctx
         self.AUCTIONTIME = 10
         
@@ -18,8 +19,8 @@ class Bot:
         with open("bible.json", "r") as f:
             data = json.load(f)
 
-        if str(self.serverid) in data.keys():
-            self.players = data[str(self.serverid)]
+        if self.serverid in data.keys():
+            self.players = data[self.serverid]
         
         # would probably be a lot better to make a player class but too late now
         self.players = {
@@ -84,15 +85,17 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
             await self.line()
         
         await self.ctx.send("The auction has ended!")
-        
-        with open("bible.json", "r") as f:
-            data = json.load(f)
 
-        data[str(self.serverid)] = self.players
-        print(data)
+        utils.update_json("bible.json", {self.serverid: self.players})
 
-        with open("bible.json", "w") as f:
-            json.dump(data, f)
+        teams = set(sum(self.players.values(), []))
+        with open("all_teams.json", "r") as f:
+            team_data = json.load(f)
+        team_data = set(team_data)
+        all_teams = team_data | teams
+        with open("all_teams.json", "w") as f:
+            json.dump(list(all_teams), f)
+
         self.auctioned = True
     
     async def auction_team(self, team):
@@ -152,7 +155,7 @@ looks like you'll have to pay {math.floor(self.bid_history[1]["price"]/2)} scoot
         await self.ctx.send("---------------------------------------")
     
     async def get_score(self):
-        scores = send.score(str(self.serverid))
+        scores = send.score(self.serverid)
         text = ""
         for player, teams in scores.items():
             text += f"{player}:\n"
@@ -166,8 +169,8 @@ looks like you'll have to pay {math.floor(self.bid_history[1]["price"]/2)} scoot
         with open("bible.json", "r") as f:
             data = json.load(f)
 
-        if str(self.serverid) in data.keys():
-            del data[str(self.serverid)]
+        if self.serverid in data.keys():
+            del data[self.serverid]
         
         with open("bible.json", "w") as f:
             json.dump(data, f)
@@ -188,7 +191,14 @@ looks like you'll have to pay {math.floor(self.bid_history[1]["price"]/2)} scoot
 ?auction: start the auction
 ?b [num] or ?bid [num]: place a bid
 ?score: see the scores
-?reset: reset the auction results'''
+?reset: reset the auction results
+?roster: see team roster
+?webhook [url] use this to set up match updates'''
 
         await self.ctx.send(message)
-
+    
+    async def roster(self):
+        text = "team rosters:\n"
+        for player, teams in self.players.items():
+            text += f"{player}: {", ".join(list(map(lambda x: x[3:], teams)))}\n"
+        await self.ctx.send(text)

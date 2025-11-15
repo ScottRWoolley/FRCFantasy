@@ -3,6 +3,8 @@ from discord.ext import commands
 from bot import Bot
 import json
 import os
+from backend import scoring, send
+import utils
 
 def main():
 
@@ -119,6 +121,29 @@ def main():
             server_id = get_server_id(ctx)
 
             await runningGames[server_id].help()
+    
+    @bot.command()
+    async def recalc(ctx):
+        scoring.calc_all_teams()
+        await ctx.send("recalculated")
+    
+    @bot.command()
+    async def roster(ctx):
+        if ctx.guild:
+            server_id = get_server_id(ctx)
+
+            await runningGames[server_id].roster()
+    
+    @bot.command()
+    async def webhook(ctx, webhook_url):
+        if ctx.guild:
+            server_id = get_server_id(ctx)
+
+            utils.update_json("webhook_urls.json", {server_id: webhook_url})
+            if send.send_webhook("test test", webhook_url):
+                await ctx.send("you are now breathing manually\n")
+            else:
+                await ctx.send("hmm something went wrong")
 
     bot.run(TOKEN)
     
