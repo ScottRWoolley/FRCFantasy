@@ -21,18 +21,23 @@ class Bot:
 
         if self.serverid in data.keys():
             self.players = data[self.serverid]
-        
-        # would probably be a lot better to make a player class but too late now
-        self.players = {
-            member.name: []
-            for member in self.ctx.guild.members if not member.bot
-        }
-        self.teampool = {
-            member.name: []
-            for member in self.ctx.guild.members if not member.bot
-        }
+            self.auctioned = True
+            self.teampool = {
+                member.name: []
+                for member in self.ctx.guild.members if not member.bot
+            }
+        else:
+            # would probably be a lot better to make a player class but too late now
+            self.players = {
+                member.name: []
+                for member in self.ctx.guild.members if not member.bot
+            }
+            self.teampool = {
+                member.name: []
+                for member in self.ctx.guild.members if not member.bot
+            }
+            self.auctioned = False
         self.MAXPOOLTEAMS = 5
-        self.auctioned = False
     
     async def setmaxpool(self, num):
         self.MAXPOOLTEAMS = num
@@ -89,11 +94,11 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
         utils.update_json("bible.json", {self.serverid: self.players})
 
         teams = set(sum(self.players.values(), []))
-        with open("all_teams.json", "r") as f:
+        with open("jsons/all_teams.json", "r") as f:
             team_data = json.load(f)
         team_data = set(team_data)
         all_teams = team_data | teams
-        with open("all_teams.json", "w") as f:
+        with open("jsons/all_teams.json", "w") as f:
             json.dump(list(all_teams), f)
 
         self.auctioned = True
@@ -161,7 +166,7 @@ looks like you'll have to pay {math.floor(self.bid_history[1]["price"]/2)} scoot
             text += f"{player}:\n"
             for team, score in teams.items():
                 text += f"Team {team[3:]}: {score}\n"
-            text += f"{player} total: {sum(teams.values())}\n"
+            text += f"{player} total: {round(sum(teams.values()), 2)}\n"
             text += "----------\n"
         await self.ctx.send(text)
     
