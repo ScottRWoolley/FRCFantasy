@@ -1,6 +1,6 @@
 import json
-import pull_data
-import scoring
+from backend import pull_data
+from backend import scoring
 
 file_path = "bible.json"
 score_file_path = "data/scores.json"
