@@ -22,7 +22,7 @@ def main():
     bot = commands.Bot(command_prefix="?", intents=intents)
     client = discord.Client(intents=intents)
 
-    with open("team_keys.json", "r") as f:
+    with open("jsons/team_keys.json", "r") as f:
         valid_teams = json.load(f)
 
     runningGames = {}
@@ -139,7 +139,7 @@ def main():
         if ctx.guild:
             server_id = get_server_id(ctx)
 
-            utils.update_json("webhook_urls.json", {server_id: webhook_url})
+            utils.update_json("jsons/webhook_urls.json", {server_id: webhook_url})
             if send.send_webhook("test test", webhook_url):
                 await ctx.send("you are now breathing manually\n")
             else:

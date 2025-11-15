@@ -74,19 +74,37 @@ def read_events(file_path):
     return events
 
 
-def pull_team_matches(team_key):
+def pull_team_matches(team_key, year="2025"):
+    url = f"https://www.thebluealliance.com/api/v3/team/{team_key}/matches/{year}"
+    return tba_request(url)
+
+def pull_team_statuses(team_key, year="2025"):
+    url = f"https://www.thebluealliance.com/api/v3/team/{team_key}/events/{year}/statuses"
+    return tba_request(url)
+
+def pull_all_event_info(year="2025"):
+    url = f"https://www.thebluealliance.com/api/v3/events/{year}/simple"
+    response = tba_request(url)
+    final = {}
+    if response:
+        for doc in response:
+            final[doc["key"]] = doc
+        with open("jsons/all_events.json", "w") as f:
+            json.dump(final, f, indent=4)
+
+def tba_request(url):
     import requests
     tba_key = os.getenv("TBA_KEY")
     year = "2025"
     headers = {'X-TBA-Auth-Key': tba_key}
 
-    url = f"https://www.thebluealliance.com/api/v3/team/{team_key}/matches/{year}"
     response = requests.get(url, headers=headers)
 
     if response.status_code == 200:
-        matches = response.json()
-        return matches
+        result = response.json()
+        return result
 
     else:
         print(f"Error {response.status_code}: {response.text}")
         return False
+pull_all_event_info()

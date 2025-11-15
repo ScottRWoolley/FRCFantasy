@@ -16,5 +16,5 @@ while True:
         teams.extend(response)
         index += 1
 teams = list(map(lambda x: x[3:], teams))
-with open("team_keys.json", "w") as f:
+with open("jsons/team_keys.json", "w") as f:
     json.dump(teams, f)

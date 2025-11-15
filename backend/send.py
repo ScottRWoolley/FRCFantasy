@@ -3,7 +3,7 @@ from backend import scoring
 import requests
 
 file_path = "bible.json"
-score_file_path = "scores.json"
+score_file_path = "jsons/scores.json"
 
 def score(channel_id): 
     result = {}
@@ -24,7 +24,7 @@ def score(channel_id):
 def send_score_updates(teams, match):
     scores = scoring.update_teams(teams, match)
 
-    with open("webhook_urls.json", "r") as f:
+    with open("jsons/webhook_urls.json", "r") as f:
         webhook_urls = json.load(f)
     with open("bible.json", "r") as f:
         bible = json.load(f)
