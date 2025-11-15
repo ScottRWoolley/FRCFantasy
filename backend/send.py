@@ -3,7 +3,7 @@ from backend import scoring
 import requests
 
 file_path = "bible.json"
-score_file_path = "data/scores.json"
+score_file_path = "scores.json"
 
 def score(channel_id): 
     result = {}
