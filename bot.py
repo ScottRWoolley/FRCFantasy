@@ -3,7 +3,7 @@ from discord.ext import commands
 import random
 import json
 import asyncio
-from backend.send import send
+from backend import send
 import math
 
 class Bot:
@@ -191,3 +191,4 @@ looks like you'll have to pay {math.floor(self.bid_history[1]["price"]/2)} scoot
 ?reset: reset the auction results'''
 
         await self.ctx.send(message)
+
