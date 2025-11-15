@@ -107,4 +107,3 @@ def tba_request(url):
     else:
         print(f"Error {response.status_code}: {response.text}")
         return False
-pull_all_event_info()
