@@ -8,7 +8,7 @@ year = "2025"
 
 teamlist = ["frc1678","frc8768","frc6662","frc254"]
 
-scores = pull_data.pull_teams(teamlist)
+scores = scoring.calculate_team_scores(teamlist)
 
 scoring.save_scores_dict(scores)
 
