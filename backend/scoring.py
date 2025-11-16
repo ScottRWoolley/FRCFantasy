@@ -2,12 +2,12 @@ import json
 import os
 from backend import pull_data
 
-AUTO_WEIGHT = 0.15
+AUTO_WEIGHT = 0.3
 TELE_WEIGHT = 0.1
 RP_WEIGHT = 0.8
-QM_WIN = 1
+QM_WIN = 2
 PLAYOFF_WIN = 2
-PLAYOFF_AUTO = 0.15
+PLAYOFF_AUTO = 0.3
 PLAYOFF_TELE = 0.1
 R1 = 10
 R2 = 20
@@ -21,11 +21,36 @@ with open("jsons/all_events.json", "r") as f:
 
 def get_scores(team_key):
     matches = pull_data.pull_team_matches(team_key)
+    event_statuses = pull_data.pull_team_statuses(team_key)
+    events = []
+    for k, e in event_statuses.items():
+        events.append(ALL_EVENTS[k])
+
+    events = sorted(events, key=convert_date_to_int)
+    valid_events = list(filter(lambda e: e["event_type"] != 99, events))
+
+    first_2 = []
+    last = []
+    mult_events = []
+    if len(valid_events) >= 2:
+        first_2 = valid_events[0:1]
+        if len(valid_events) > 2:
+            last = [valid_events[-1]]
+            if len(valid_events) > 3:
+                mult_events = valid_events[2:-2]
+    valid_events = first_2 + last
+
+    events = list(map(lambda e: e["key"], events))
+    valid_events = list(map(lambda e: e["key"], valid_events))
+
+    invalid_events = list(set(events).symmetric_difference(set(valid_events)))
+    for event in invalid_events:
+        del event_statuses[event]
 
     total = 0.0
 
     for match in matches:
-        if ALL_EVENTS[match["event_key"]]["event_type"] == 99:
+        if match["event_key"] in invalid_events:
             continue
         try:
             alliances = match["alliances"]
@@ -42,7 +67,7 @@ def get_scores(team_key):
         except Exception:
             continue
     
-    total += calc_playoff_bonus(team_key)
+    total += calc_playoff_bonus(event_statuses)
 
     return round(total, 2)
 
@@ -97,7 +122,8 @@ def calculate_match_score(match, color):
     if match["comp_level"] == "qm":
         return calculate_qm_score(match, color)
     else:
-        return calculate_playoff_score(match, color)
+        return 0
+        #return calculate_playoff_score(match, color)
 
 def calc_tim_scores(match):
     alliances = match["alliances"]
@@ -126,37 +152,41 @@ def update_teams(teams, match):
     tim_scores = calc_tim_scores(match)
     return tim_scores
 
-def calc_playoff_bonus(team_key):
+def calc_playoff_bonus(events):
     total = 0
-    events = pull_data.pull_team_statuses(team_key)
     
     for key, event in events.items():
         if ALL_EVENTS[key]["event_type"] == 99:
             continue
-        last_round = {
-            "r1": ["sfm1", "sfm2", "sfm3", "sfm4", "sfm5", "sfm6"],
-            "r2": ["sfm7", "sfm8", "sfm9", "sfm10"],
-            "r3": ["sfm11", "sfm12"],
-            "r4": ["sfm13"],
-            "r5": ["f1m1", "f1m2", "f1m3"]
-        }
-        round_values = {
-            "r1": R1,
-            "r2": R2,
-            "r3": R3,
-            "r4": R4,
-            "r5": R5
-        }
-        last_key = event["last_match_key"]
-        r = [last_r for last_r, keys in last_round.items() if last_key.replace(f"{key}_", "") in keys]
-        if len(r) > 0:
-            r = r[0]
-        else:
-            continue
-        total += round_values[r]
-        if event["playoff"]["status"] == "won":
-            total += COMP_WIN_BONUS
-
-
-
+        total += calc_event_playoff_bonus(key, event)
     return total
+
+def calc_event_playoff_bonus(key, event):
+    total = 0
+    last_round = {
+        "r1": ["sf1m1", "sf2m1", "sf3m1", "sf4m1", "sf5m1", "sf6m1"],
+        "r2": ["sf7m1", "sf8m1", "sf9m1", "sf10m1"],
+        "r3": ["sf11m1", "sf12m1"],
+        "r4": ["sf13m1"],
+        "r5": ["f1m1", "f1m2", "f1m3"]
+    }
+    round_values = {
+        "r1": R1,
+        "r2": R2,
+        "r3": R3,
+        "r4": R4,
+        "r5": R5
+    }
+    last_key = event["last_match_key"]
+    r = [last_r for last_r, keys in last_round.items() if last_key.replace(f"{key}_", "") in keys]
+    if len(r) > 0:
+        r = r[0]
+    else:
+        return 0
+    total += round_values[r]
+    if event["playoff"]["status"] == "won":
+        total += COMP_WIN_BONUS
+    return total
+
+def convert_date_to_int(e):
+    return int(e["start_date"].replace("-", ""))
