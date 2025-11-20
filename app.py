@@ -8,7 +8,7 @@ import json
 
 app = FastAPI()
 client = MongoClient(os.environ['MongoClient'], 1678)
-db = client.Testing
+db = client.Fantasy
 
 class Update(BaseModel):
     message_type: str | None = None

@@ -1,19 +1,15 @@
 import json
 from backend import scoring
 import requests
-
-file_path = "bible.json"
-score_file_path = "jsons/scores.json"
+import os
+from backend import mongoer
 
 def score(channel_id): 
     result = {}
-    with open(file_path, "r") as f:
-        data = json.load(f)
     
-    with open(score_file_path, "r") as f:
-        scores = json.load(f)
+    scores = mongoer.find("scores")[0]
     
-    users = data[channel_id]
+    users = mongoer.find("bible", {"server_id": channel_id})[0]["players"]
     for username, teams in users.items():
         if username not in result:
             result[username] = {}
@@ -24,13 +20,11 @@ def score(channel_id):
 def send_score_updates(teams, match):
     scores = scoring.update_teams(teams, match)
 
-    with open("jsons/webhook_urls.json", "r") as f:
-        webhook_urls = json.load(f)
-    with open("bible.json", "r") as f:
-        bible = json.load(f)
+    webhook_urls = mongoer.find("webhook_urls")[0]
     
     for serverid, url in webhook_urls.items():
-        intersecting_teams = set(scores.keys()).intersection(set(sum(bible[serverid].values(), [])))
+        server_bible = mongoer.find("bible", {"server_id": serverid})
+        intersecting_teams = set(scores.keys()).intersection(set(sum(server_bible.values(), [])))
         if len(intersecting_teams) > 0:
             message = "SCORE UPDATE!!!"
             for team in intersecting_teams:

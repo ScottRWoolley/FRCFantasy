@@ -1,6 +1,7 @@
 import json
 import os
 from backend import pull_data
+from backend import mongoer
 
 AUTO_WEIGHT = 0.3
 TELE_WEIGHT = 0.1
@@ -27,23 +28,24 @@ def get_scores(team_key):
         events.append(ALL_EVENTS[k])
 
     events = sorted(events, key=convert_date_to_int)
-    valid_events = list(filter(lambda e: e["event_type"] != 99, events))
+    #valid_events = list(filter(lambda e: e["event_type"] != 99, events))
+    valid_events = events
 
-    first_2 = []
-    last = []
-    mult_events = []
-    if len(valid_events) >= 2:
-        first_2 = valid_events[0:1]
-        if len(valid_events) > 2:
-            last = [valid_events[-1]]
-            if len(valid_events) > 3:
-                mult_events = valid_events[2:-2]
-    valid_events = first_2 + last
+    # first_2 = []
+    # last = []
+    # mult_events = []
+    # if len(valid_events) >= 2:
+    #     first_2 = valid_events[0:1]
+    #     if len(valid_events) > 2:
+    #         last = [valid_events[-1]]
+    #         if len(valid_events) > 3:
+    #             mult_events = valid_events[2:-2]
+    # valid_events = first_2 + last
 
     events = list(map(lambda e: e["key"], events))
     valid_events = list(map(lambda e: e["key"], valid_events))
 
-    invalid_events = list(set(events).symmetric_difference(set(valid_events)))
+    invalid_events = list(set(events).difference(set(valid_events)))
     for event in invalid_events:
         del event_statuses[event]
 
@@ -80,12 +82,17 @@ def calculate_team_scores(teams):
     return team_scores
 
 
-def save_scores_dict(scorelist, output_file="jsons/scores.json"):
-    with open(output_file, "r") as f:
-        data = json.load(f)
+def save_scores_dict(scorelist):
+    data = mongoer.find("scores")[0]
     new_data = data | scorelist
-    with open(output_file, "w") as f:
-        json.dump(new_data, f)
+    mongoer.update_document("scores", query={"_id": data["_id"]}, new_data=new_data)
+
+
+def add_score_from_match(tim_scores, teams):
+    data = mongoer.find("scores")[0]
+    for team in teams:
+        data[team] += tim_scores[team]
+    mongoer.update_document("scores", query={"_id": data["_id"]}, new_data=data)
 
 
 def calculate_qm_score(match, color):
@@ -136,28 +143,23 @@ def calc_tim_scores(match):
     return scores
 
 def calc_all_teams():
-    with open("jsons/all_teams.json", "r") as f:
-        all_teams = json.load(f)
+    all_teams = mongoer.find("all_teams")[0]["data"]
     
     scores = calculate_team_scores(all_teams)
     save_scores_dict(scores)
 
 def update_teams(teams, match):
-    with open("jsons/all_teams.json", "r") as f:
-        all_teams = json.load(f)
+    all_teams = mongoer.find("all_teams")[0]["data"]
     
-    t = set(all_teams).intersection(set(teams))
-    scores = calculate_team_scores(list(t))
-    save_scores_dict(scores)
+    t = list(set(all_teams).intersection(set(teams)))
     tim_scores = calc_tim_scores(match)
+    add_score_from_match(tim_scores, t)
     return tim_scores
 
 def calc_playoff_bonus(events):
     total = 0
     
     for key, event in events.items():
-        if ALL_EVENTS[key]["event_type"] == 99:
-            continue
         total += calc_event_playoff_bonus(key, event)
     return total
 

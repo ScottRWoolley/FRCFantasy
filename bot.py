@@ -6,6 +6,9 @@ import asyncio
 from backend import send
 import math
 import utils
+from pymongo import MongoClient
+import os
+from backend import mongoer
 
 class Bot:
     def __init__(self, ctx):
@@ -15,12 +18,11 @@ class Bot:
         
     
     async def setup(self):
-        await self.ctx.send("use ?helpplease for a list of commands")
-        with open("bible.json", "r") as f:
-            data = json.load(f)
+        await self.ctx.send("use ?helpplease for a list of commands\nif you want to set up a webhook for match updates, use ?webhook [url]")
+        data = mongoer.find("bible", {"server_id": self.serverid})
 
-        if self.serverid in data.keys():
-            self.players = data[self.serverid]
+        if len(data) > 0:
+            self.players = data[0]["players"]
             self.auctioned = True
             self.teampool = {
                 member.name: []
@@ -37,6 +39,7 @@ class Bot:
                 for member in self.ctx.guild.members if not member.bot
             }
             self.auctioned = False
+        print(self.teampool)
         self.MAXPOOLTEAMS = 5
     
     async def setmaxpool(self, num):
@@ -91,15 +94,33 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
         
         await self.ctx.send("The auction has ended!")
 
-        utils.update_json("bible.json", {self.serverid: self.players})
+        mongoer.insert(
+            "bible",
+            {
+                "server_id": self.serverid,
+                "players": self.players
+            }
+        )
 
         teams = set(sum(self.players.values(), []))
-        with open("jsons/all_teams.json", "r") as f:
-            team_data = json.load(f)
+
+        mongo_all_teams = mongoer.find("all_teams")
+        if not mongo_all_teams:
+            mongoer.insert("all_teams", {"data": []})
+            mongo_all_teams = mongoer.find("all_teams")
+        team_data = mongo_all_teams[0]["data"]
         team_data = set(team_data)
         all_teams = team_data | teams
-        with open("jsons/all_teams.json", "w") as f:
-            json.dump(list(all_teams), f)
+        mongoer.update_document("all_teams", query={"_id": mongo_all_teams[0]["_id"]}, new_data={"data": list(all_teams)})
+
+        unadded_teams = list(teams.difference(team_data))
+        score_update = dict().fromkeys(unadded_teams, 0)
+
+        scores = mongoer.find("scores")
+        if not scores:
+            mongoer.insert("scores", score_update)
+        else:
+            mongoer.update_document("scores", query={"_id": scores[0]["_id"]}, new_data=score_update)
 
         self.auctioned = True
     
@@ -119,10 +140,9 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
             await self.ctx.send(f"sold! team {team} for {self.bid_history[0]["price"]} to {buyer}")
             self.players[buyer].append("frc"+team)
 
-            if loser := self.bid_history[1]["buyer"]:
-                if loser != buyer:
-                    self.money[loser] -= math.floor(self.bid_history[1]["price"]/2)
-                    await self.ctx.send(f'''{loser} it's called first robotics competition not second robotics competition
+            if loser := next((b["buyer"] for b in self.bid_history if b["buyer"] != buyer), None):
+                self.money[loser] -= math.floor(self.bid_history[1]["price"]/2)
+                await self.ctx.send(f'''{loser} it's called first robotics competition not second robotics competition
 looks like you'll have to pay {math.floor(self.bid_history[1]["price"]/2)} scootbucks''')
         else:
             await self.ctx.send(f"oof no one wanted {team}")
@@ -171,14 +191,8 @@ looks like you'll have to pay {math.floor(self.bid_history[1]["price"]/2)} scoot
         await self.ctx.send(text)
     
     async def reset(self):
-        with open("bible.json", "r") as f:
-            data = json.load(f)
-
-        if self.serverid in data.keys():
-            del data[self.serverid]
         
-        with open("bible.json", "w") as f:
-            json.dump(data, f)
+        mongoer.delete("bible", {"server_id": self.serverid})
         
         self.players = {
             member.name: []
