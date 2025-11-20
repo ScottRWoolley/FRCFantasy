@@ -28,18 +28,19 @@ def get_scores(team_key):
         events.append(ALL_EVENTS[k])
 
     events = sorted(events, key=convert_date_to_int)
-    valid_events = list(filter(lambda e: e["event_type"] != 99, events))
+    #valid_events = list(filter(lambda e: e["event_type"] != 99, events))
+    valid_events = events
 
-    first_2 = []
-    last = []
-    mult_events = []
-    if len(valid_events) >= 2:
-        first_2 = valid_events[0:1]
-        if len(valid_events) > 2:
-            last = [valid_events[-1]]
-            if len(valid_events) > 3:
-                mult_events = valid_events[2:-2]
-    valid_events = first_2 + last
+    # first_2 = []
+    # last = []
+    # mult_events = []
+    # if len(valid_events) >= 2:
+    #     first_2 = valid_events[0:1]
+    #     if len(valid_events) > 2:
+    #         last = [valid_events[-1]]
+    #         if len(valid_events) > 3:
+    #             mult_events = valid_events[2:-2]
+    # valid_events = first_2 + last
 
     events = list(map(lambda e: e["key"], events))
     valid_events = list(map(lambda e: e["key"], valid_events))
@@ -159,8 +160,6 @@ def calc_playoff_bonus(events):
     total = 0
     
     for key, event in events.items():
-        if ALL_EVENTS[key]["event_type"] == 99:
-            continue
         total += calc_event_playoff_bonus(key, event)
     return total
 
