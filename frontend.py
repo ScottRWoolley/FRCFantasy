@@ -5,6 +5,8 @@ import json
 import os
 from backend import scoring, send
 import utils
+from pymongo import MongoClient
+from backend import mongoer
 
 def main():
 
@@ -139,7 +141,12 @@ def main():
         if ctx.guild:
             server_id = get_server_id(ctx)
 
-            utils.update_json("jsons/webhook_urls.json", {server_id: webhook_url})
+            webhooks = mongoer.find("webhook_urls")
+            if not webhooks:
+                mongoer.insert("webhook_urls", {server_id: webhook_url})
+            else:
+                mongoer.update_document("webhook_urls", query={"_id": webhooks[0]["_id"]}, new_data={server_id: webhook_url})
+
             if send.send_webhook("test test", webhook_url):
                 await ctx.send("you are now breathing manually")
             else:
