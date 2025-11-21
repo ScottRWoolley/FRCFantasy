@@ -40,7 +40,7 @@ def send_score_updates(teams, match):
                 if intersect := set(user_teams.keys()).intersection(set(teams)):
                     intersecting_teams += list(intersect)
                     for t in intersect:
-                        new_scores[user][t] += scores[t]
+                        previous_scores[user][t] -= scores[t]
 
             if len(intersecting_teams) > 0:
                 message = "SCORE UPDATE!!!"
