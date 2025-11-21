@@ -45,21 +45,24 @@ def get_scores(team_key):
     events = list(map(lambda e: e["key"], events))
     valid_events = list(map(lambda e: e["key"], valid_events))
 
-    invalid_events = list(set(events).difference(set(valid_events)))
-    for event in invalid_events:
-        del event_statuses[event]
-
     total = 0.0
 
-    for match in matches:
-        if match["event_key"] in invalid_events:
-            continue
+    for event in valid_events:
+        comp_matches = list(filter(lambda m: m["event_key"] == event, matches))
+        total += get_team_event_score(team_key, event, event_statuses[event], comp_matches)
+
+    return round(total, 2)
+
+def get_team_event_score(team, event_key, event_status, event_matches):
+    total = 0.0
+
+    for match in event_matches:
         try:
             alliances = match["alliances"]
 
-            if team_key in alliances["red"]["team_keys"]:
+            if team in alliances["red"]["team_keys"]:
                 side = "red"
-            elif team_key in alliances["blue"]["team_keys"]:
+            elif team in alliances["blue"]["team_keys"]:
                 side = "blue"
             else:
                 continue
@@ -69,9 +72,10 @@ def get_scores(team_key):
         except Exception:
             continue
     
-    total += calc_playoff_bonus(event_statuses)
+    total += calc_event_playoff_bonus(event_key, event_status)
 
     return round(total, 2)
+
 
 def calculate_team_scores(teams):
     team_scores = dict.fromkeys(teams, 0)
@@ -155,13 +159,6 @@ def update_teams(teams, match):
     tim_scores = calc_tim_scores(match)
     add_score_from_match(tim_scores, t)
     return tim_scores
-
-def calc_playoff_bonus(events):
-    total = 0
-    
-    for key, event in events.items():
-        total += calc_event_playoff_bonus(key, event)
-    return total
 
 def calc_event_playoff_bonus(key, event):
     total = 0

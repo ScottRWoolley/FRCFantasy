@@ -23,13 +23,17 @@ def send_score_updates(teams, match):
     webhook_urls = mongoer.find("webhook_urls")[0]
     
     for serverid, url in webhook_urls.items():
-        server_bible = mongoer.find("bible", {"server_id": serverid})
-        intersecting_teams = set(scores.keys()).intersection(set(sum(server_bible.values(), [])))
-        if len(intersecting_teams) > 0:
-            message = "SCORE UPDATE!!!"
-            for team in intersecting_teams:
-                message += f"\n{team[3:]} scored {scores[team]}"
-            send_webhook(message, url)
+        try:
+            server_bible = mongoer.find("bible", {"server_id": serverid})
+            intersecting_teams = set(scores.keys()).intersection(set(sum(server_bible[0].values(), [])))
+            if len(intersecting_teams) > 0:
+                message = "SCORE UPDATE!!!"
+                for team in intersecting_teams:
+                    message += f"\n{team[3:]} scored {scores[team]}"
+                send_webhook(message, url)
+        except Exception as err:
+            print(err)
+            continue
 
 def send_webhook(message, url):
     response = requests.post(url, data=json.dumps({"content": message}), headers={"Content-Type": "application/json"})
