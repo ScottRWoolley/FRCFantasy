@@ -162,29 +162,32 @@ def update_teams(teams, match):
 
 def calc_event_playoff_bonus(key, event):
     total = 0
-    last_round = {
-        "r1": ["sf1m1", "sf2m1", "sf3m1", "sf4m1", "sf5m1", "sf6m1"],
-        "r2": ["sf7m1", "sf8m1", "sf9m1", "sf10m1"],
-        "r3": ["sf11m1", "sf12m1"],
-        "r4": ["sf13m1"],
-        "r5": ["f1m1", "f1m2", "f1m3"]
-    }
-    round_values = {
-        "r1": R1,
-        "r2": R2,
-        "r3": R3,
-        "r4": R4,
-        "r5": R5
-    }
-    last_key = event["last_match_key"]
-    r = [last_r for last_r, keys in last_round.items() if last_key.replace(f"{key}_", "") in keys]
-    if len(r) > 0:
-        r = r[0]
-    else:
-        return 0
-    total += round_values[r]
-    if event["playoff"]["status"] == "won":
-        total += COMP_WIN_BONUS
+    try:
+        last_round = {
+            "r1": ["sf1m1", "sf2m1", "sf3m1", "sf4m1", "sf5m1", "sf6m1"],
+            "r2": ["sf7m1", "sf8m1", "sf9m1", "sf10m1"],
+            "r3": ["sf11m1", "sf12m1"],
+            "r4": ["sf13m1"],
+            "r5": ["f1m1", "f1m2", "f1m3"]
+        }
+        round_values = {
+            "r1": R1,
+            "r2": R2,
+            "r3": R3,
+            "r4": R4,
+            "r5": R5
+        }
+        last_key = event["last_match_key"]
+        r = [last_r for last_r, keys in last_round.items() if last_key.replace(f"{key}_", "") in keys]
+        if len(r) > 0:
+            r = r[0]
+        else:
+            return 0
+        total += round_values[r]
+        if event["playoff"]["status"] == "won":
+            total += COMP_WIN_BONUS
+    except Exception as err:
+        print(key + event + err)
     return total
 
 def convert_date_to_int(e):
