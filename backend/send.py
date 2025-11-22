@@ -51,9 +51,9 @@ def send_score_updates(teams, match):
             previous_sorted_score = sorted(previous_scores.keys(), key = lambda k: sum(previous_scores[k].values()), reverse=True)
 
             for player in sorted_score:
-                text += add_dashes_until_length(f"{player}: {round(sum(new_scores[player].values()), 2)}", 30)
-                text += leaderboard_change(sorted_score, previous_sorted_score, player)
-                text += "\n"
+                message += add_dashes_until_length(f"{player}: {round(sum(new_scores[player].values()), 2)}", 30)
+                message += leaderboard_change(sorted_score, previous_sorted_score, player)
+                message += "\n"
 
             send_webhook(message, url)
 
@@ -62,15 +62,15 @@ def leaderboard_change(previous, new, item):
     previous_index = previous.index(item)
     change = previous_index - new_index
     if change > 1:
-        return 0
+        return EMOJIS[0] + str(change)
     elif change == 1:
-        return 1
+        return EMOJIS[1] + str(change)
     elif change == 0:
-        return 2
+        return EMOJIS[2] + str(change)
     elif change == -1:
-        return 3
+        return EMOJIS[3] + str(change)
     else:
-        return 4
+        return EMOJIS[4] + str(change)
 
 def add_dashes_until_length(string, length):
     strlength = len(string)
