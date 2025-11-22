@@ -187,7 +187,8 @@ def calc_event_playoff_bonus(key, event):
         if event["playoff"]["status"] == "won":
             total += COMP_WIN_BONUS
     except Exception as err:
-        print(key + event + err)
+        print(err)
+        print(key)
     return total
 
 def convert_date_to_int(e):
