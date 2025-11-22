@@ -74,7 +74,7 @@ def leaderboard_change(previous, new, item):
 
 def add_dashes_until_length(string, length):
     strlength = len(string)
-    return string + "-" * length - strlength 
+    return string + "-" * (length - strlength) 
 
 def send_webhook(message, url):
     response = requests.post(url, data=json.dumps({"content": message}), headers={"Content-Type": "application/json"})
