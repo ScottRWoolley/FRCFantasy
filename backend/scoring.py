@@ -141,7 +141,10 @@ def calc_tim_scores(match):
     scores = {}
     for color in ["blue", "red"]:
         alliance_score = calculate_match_score(match, color)
-        teams = alliances[color]["teams"]
+        try:
+            teams = alliances[color]["teams"]
+        except:
+            teams = alliances[color]["team_keys"]
         for team in teams:
             scores[team] = alliance_score
     return scores
