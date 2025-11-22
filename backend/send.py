@@ -31,34 +31,30 @@ def send_score_updates(teams, match):
     webhook_urls = mongoer.find("webhook_urls")[0]
     
     for serverid, url in webhook_urls.items():
-        try:
-            intersecting_teams = []
-            previous_scores = score(serverid)
-            new_scores = copy.deepcopy(previous_scores)
+        intersecting_teams = []
+        previous_scores = score(serverid)
+        new_scores = copy.deepcopy(previous_scores)
 
-            for user, user_teams in previous_scores.items():
-                if intersect := set(user_teams.keys()).intersection(set(teams)):
-                    intersecting_teams += list(intersect)
-                    for t in intersect:
-                        previous_scores[user][t] -= scores[t]
+        for user, user_teams in new_scores.items():
+            if intersect := set(user_teams.keys()).intersection(set(teams)):
+                intersecting_teams += list(intersect)
+                for t in intersect:
+                    previous_scores[user][t] -= scores[t]
 
-            if len(intersecting_teams) > 0:
-                message = "SCORE UPDATE!!!"
-                for team in intersecting_teams:
-                    message += f"\n{team[3:]} scored {scores[team]}"
-                
-                sorted_score = sorted(new_scores.keys(), key = lambda k: sum(new_scores[k].values), reverse=True)
-                previous_sorted_score = sorted(previous_scores.keys(), key = lambda k: sum(previous_scores[k].values), reverse=True)
+        if len(intersecting_teams) > 0:
+            message = "SCORE UPDATE!!!\n"
+            for team in intersecting_teams:
+                message += f"{team[3:]} scored {scores[team]}\n"
+            
+            sorted_score = sorted(new_scores.keys(), key = lambda k: sum(new_scores[k].values), reverse=True)
+            previous_sorted_score = sorted(previous_scores.keys(), key = lambda k: sum(previous_scores[k].values), reverse=True)
 
-                for player in sorted_score:
-                    text += add_dashes_until_length(f"{player}: {round(sum(new_scores[player].values()), 2)}", 30)
-                    text += leaderboard_change(sorted_score, previous_sorted_score, player)
-                    text += "\n"
+            for player in sorted_score:
+                text += add_dashes_until_length(f"{player}: {round(sum(new_scores[player].values()), 2)}", 30)
+                text += leaderboard_change(sorted_score, previous_sorted_score, player)
+                text += "\n"
 
-                send_webhook(message, url)
-        except Exception as err:
-            print(err)
-            continue
+            send_webhook(message, url)
 
 def leaderboard_change(previous, new, item):
     new_index = new.index(item)
