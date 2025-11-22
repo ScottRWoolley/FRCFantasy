@@ -19,7 +19,7 @@ async def get_updates(request: Update):
     update = request.model_dump()
     alliances = update["message_data"]["match"]["alliances"]
     teams = []
-    teams.extend(alliances[color]["teams"] for color in ["red", "blue"])
+    teams.extend(alliances[color]["team_keys"] for color in ["red", "blue"])
     teams = sum(teams, [])
     
     send.send_score_updates(teams, update["message_data"]["match"])
