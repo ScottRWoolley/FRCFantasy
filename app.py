@@ -17,14 +17,9 @@ class Update(BaseModel):
 @app.post("/tbawebhook")
 async def get_updates(request: Update):
     update = request.model_dump()
-    try:
-        alliances = update["message_data"]["match"]["alliances"]
-        teams = []
-        teams.extend(alliances[color]["teams"] for color in ["red", "blue"])
-        teams = sum(teams, [])
-    except:
-        print(update)
-        print("error")
-        return
+    alliances = update["message_data"]["match"]["alliances"]
+    teams = []
+    teams.extend(alliances[color]["teams"] for color in ["red", "blue"])
+    teams = sum(teams, [])
     
     send.send_score_updates(teams, update["message_data"]["match"])
