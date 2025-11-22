@@ -29,6 +29,7 @@ def send_score_updates(teams, match):
     scores = scoring.update_teams(teams, match)
 
     webhook_urls = mongoer.find("webhook_urls")[0]
+    del webhook_urls["_id"]
     
     for serverid, url in webhook_urls.items():
         intersecting_teams = []
