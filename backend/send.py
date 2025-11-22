@@ -47,8 +47,8 @@ def send_score_updates(teams, match):
             for team in intersecting_teams:
                 message += f"{team[3:]} scored {scores[team]}\n"
             
-            sorted_score = sorted(new_scores.keys(), key = lambda k: sum(new_scores[k].values), reverse=True)
-            previous_sorted_score = sorted(previous_scores.keys(), key = lambda k: sum(previous_scores[k].values), reverse=True)
+            sorted_score = sorted(new_scores.keys(), key = lambda k: sum(new_scores[k].values()), reverse=True)
+            previous_sorted_score = sorted(previous_scores.keys(), key = lambda k: sum(previous_scores[k].values()), reverse=True)
 
             for player in sorted_score:
                 text += add_dashes_until_length(f"{player}: {round(sum(new_scores[player].values()), 2)}", 30)
