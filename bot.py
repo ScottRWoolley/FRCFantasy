@@ -1,20 +1,19 @@
 import discord
 from discord.ext import commands
 import random
-import json
 import asyncio
 from backend import send
 import math
-import utils
 from pymongo import MongoClient
-import os
 from backend import mongoer
+import time
 
 class Bot:
     def __init__(self, ctx):
         self.serverid = str(ctx.guild.id)
         self.ctx = ctx
         self.AUCTIONTIME = 10
+        self.bidtimer = time.time()
         
     
     async def setup(self):
@@ -164,6 +163,9 @@ looks like you'll have to pay {math.floor(self.bid_history[1]["price"]/2)} scoot
     
     async def bid(self, ctx, num):
         await ctx.message.delete()
+        current_time = time.time()
+        if current_time - self.bidtimer < 2:
+            return
         if self.money[ctx.author.name] >= num and (
             num > self.bid_history[0]["price"]
               or (
@@ -173,8 +175,11 @@ looks like you'll have to pay {math.floor(self.bid_history[1]["price"]/2)} scoot
                 )
             ):
             self.bid_history.insert(0, {"buyer": ctx.author.name, "price": num})
+
             if self.current_countdown:
                 self.current_countdown.cancel()
+
+        self.bidtimer = time.time()
     
     async def line(self):
         await self.ctx.send("---------------------------------------")
