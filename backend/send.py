@@ -43,7 +43,7 @@ def send_score_updates(teams, match):
                     previous_scores[user][t] -= scores[t]
 
         if len(intersecting_teams) > 0:
-            message = "SCORE UPDATE!!!\n"
+            message = f"SCORE UPDATE!!! ({match["key"]})\n"
             for team in intersecting_teams:
                 message += f"{team[3:]} scored {scores[team]}\n"
             
@@ -60,17 +60,17 @@ def send_score_updates(teams, match):
 def leaderboard_change(previous, new, item):
     new_index = new.index(item)
     previous_index = previous.index(item)
-    change = previous_index - new_index
+    change = new_index-previous_index
     if change > 1:
-        return EMOJIS[0] + str(change)
+        return EMOJIS[4] + str(change)
     elif change == 1:
-        return EMOJIS[1] + str(change)
+        return EMOJIS[3] + str(change)
     elif change == 0:
         return EMOJIS[2] + str(change)
     elif change == -1:
-        return EMOJIS[3] + str(change)
+        return EMOJIS[1] + str(change)
     else:
-        return EMOJIS[4] + str(change)
+        return EMOJIS[0] + str(change)
 
 def add_dashes_until_length(string, length):
     strlength = len(string)
