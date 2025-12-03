@@ -3,19 +3,24 @@ import os
 from backend import pull_data
 from backend import mongoer
 
-AUTO_WEIGHT = 0.3
-TELE_WEIGHT = 0.1
-RP_WEIGHT = 0.8
-QM_WIN = 2
-PLAYOFF_WIN = 2
+AUTO_WEIGHT = 0.25
+TELE_WEIGHT = 0.085
+RP_WEIGHT = 0.75
+QM_WIN = 1.5
+PLAYOFF_WIN = 0
 PLAYOFF_AUTO = 0.3
 PLAYOFF_TELE = 0.1
-R1 = 10
-R2 = 20
-R3 = 40
-R4 = 60
-R5 = 80
-COMP_WIN_BONUS = 20
+R0 = 300
+R1 = -270
+R2 = -240
+R3 = -150
+R4 = -90
+R5 = -30
+
+CHAMPS_WIN_BONUS = 100
+
+#TODO change to a time thing at some point :)
+YEAR = "2025"
 
 with open("jsons/all_events.json", "r") as f:
     ALL_EVENTS = json.load(f)
@@ -28,28 +33,37 @@ def get_scores(team_key):
         events.append(ALL_EVENTS[k])
 
     events = sorted(events, key=convert_date_to_int)
-    #valid_events = list(filter(lambda e: e["event_type"] != 99, events))
-    valid_events = events
+    valid_events = list(filter(lambda e: e["event_type"] != 99, events))
+    #valid_events = events
 
-    # first_2 = []
-    # last = []
-    # mult_events = []
-    # if len(valid_events) >= 2:
-    #     first_2 = valid_events[0:1]
-    #     if len(valid_events) > 2:
-    #         last = [valid_events[-1]]
-    #         if len(valid_events) > 3:
-    #             mult_events = valid_events[2:-2]
-    # valid_events = first_2 + last
+    first_2 = []
+    last = []
+    mult_events = []
+    if len(valid_events) >= 2:
+        first_2 = valid_events[0:2]
+        if len(valid_events) > 2:
+            if valid_events[-1]["key"] != f"{YEAR}cmptx":
+                last = [valid_events[-1]]
+            else:
+                last = [valid_events[-2]]
+            if len(valid_events) > 3:
+                mult_events = valid_events[2:-2]
+    valid_events = first_2 + last
 
     events = list(map(lambda e: e["key"], events))
     valid_events = list(map(lambda e: e["key"], valid_events))
+    valid_events.append("2025cmptx") # won't break anything in theory
 
     total = 0.0
 
     for event in valid_events:
         comp_matches = list(filter(lambda m: m["event_key"] == event, matches))
-        total += get_team_event_score(team_key, event, event_statuses[event], comp_matches)
+
+        estatus = None
+        if event in list(event_statuses.keys()):
+            estatus = event_statuses[event]
+
+        total += get_team_event_score(team_key, event, estatus, comp_matches)
 
     return round(total, 2)
 
@@ -57,22 +71,25 @@ def get_team_event_score(team, event_key, event_status, event_matches):
     total = 0.0
 
     for match in event_matches:
-        try:
-            alliances = match["alliances"]
+        # try:
+        alliances = match["alliances"]
 
-            if team in alliances["red"]["team_keys"]:
-                side = "red"
-            elif team in alliances["blue"]["team_keys"]:
-                side = "blue"
-            else:
-                continue
-
-            total += calculate_match_score(match, side)
-
-        except Exception:
+        if team in alliances["red"]["team_keys"]:
+            side = "red"
+        elif team in alliances["blue"]["team_keys"]:
+            side = "blue"
+        else:
             continue
+
+        total += calculate_match_score(match, side)
+
+        # except Exception as err:
+        #     print(err)
+        #     print(team)
+        #     continue
     
-    total += calc_event_playoff_bonus(event_key, event_status)
+    if event_status:  
+        total += calc_event_playoff_bonus(event_key, event_status)
 
     return round(total, 2)
 
@@ -120,21 +137,50 @@ def calculate_playoff_score(match, color):
     if not breakdown:
         return round(match["alliances"][color]["score"] * PLAYOFF_TELE, 2)
     winning = match.get("winning_alliance")
+    won = winning == color
 
     auto_score = breakdown[color]["autoPoints"]
     tele_points = breakdown[color]["teleopPoints"]
-    win = PLAYOFF_WIN if winning == color else 0
+    win = PLAYOFF_WIN if won else 0
 
     # weighted formula
     weighted_score = (auto_score * PLAYOFF_AUTO) + (tele_points * PLAYOFF_TELE) + win
+
+    last_round = {
+            "r0": ["sf1m1", "sf2m1", "sf3m1", "sf4m1"],
+            "r1": ["sf5m1", "sf6m1"],
+            "r2": ["sf9m1", "sf10m1"],
+            "r3": ["sf12m1"],
+            "r4": ["sf13m1"],
+            "r5": ["f1m1", "f1m2", "f1m3"]
+        }
+    
+    round_values = {
+        "r0": R0,
+        "r1": R1,
+        "r2": R2,
+        "r3": R3,
+        "r4": R4,
+        "r5": R5
+    }
+
+    r = [last_r for last_r, keys in last_round.items() if match["key"].replace(f"{match["event_key"]}_", "") in keys]
+    if len(r) > 0:
+        if not won or r[0] == "r0":
+            bonus_score = round_values[r[0]]
+            if match["event_key"] != f"{YEAR}cmptx":
+                weighted_score += bonus_score
+    
+    if match["event_key"] == f"{YEAR}cmptx":
+        weighted_score /= 3
+    
     return round(weighted_score, 2)
 
 def calculate_match_score(match, color):
     if match["comp_level"] == "qm":
         return calculate_qm_score(match, color)
     else:
-        return 0
-        #return calculate_playoff_score(match, color)
+        return calculate_playoff_score(match, color)
 
 def calc_tim_scores(match):
     alliances = match["alliances"]
@@ -166,29 +212,8 @@ def update_teams(teams, match):
 def calc_event_playoff_bonus(key, event):
     total = 0
     try:
-        last_round = {
-            "r1": ["sf1m1", "sf2m1", "sf3m1", "sf4m1", "sf5m1", "sf6m1"],
-            "r2": ["sf7m1", "sf8m1", "sf9m1", "sf10m1"],
-            "r3": ["sf11m1", "sf12m1"],
-            "r4": ["sf13m1"],
-            "r5": ["f1m1", "f1m2", "f1m3"]
-        }
-        round_values = {
-            "r1": R1,
-            "r2": R2,
-            "r3": R3,
-            "r4": R4,
-            "r5": R5
-        }
-        last_key = event["last_match_key"]
-        r = [last_r for last_r, keys in last_round.items() if last_key.replace(f"{key}_", "") in keys]
-        if len(r) > 0:
-            r = r[0]
-        else:
-            return 0
-        total += round_values[r]
-        if event["playoff"]["status"] == "won":
-            total += COMP_WIN_BONUS
+        if event["playoff"]["status"] == "won" and key == f"{YEAR}cmptx":
+            total += CHAMPS_WIN_BONUS
     except Exception as err:
         print(err)
         print(key)

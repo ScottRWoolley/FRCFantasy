@@ -7,6 +7,10 @@ import math
 from pymongo import MongoClient
 from backend import mongoer
 import time
+import os
+
+PUNISHMENT = 4 # Divide losing bid by how much
+CCHAR = os.getenv("COMMAND_CHAR") # ? or !
 
 class Bot:
     def __init__(self, ctx):
@@ -17,7 +21,7 @@ class Bot:
         
     
     async def setup(self):
-        await self.ctx.send("use ?helpplease for a list of commands\nif you want to set up a webhook for match updates, use ?webhook [url]")
+        await self.ctx.send(f"use {CCHAR}helpplease for a list of commands\nif you want to set up a webhook for match updates, use {CCHAR}webhook [url]")
         data = mongoer.find("bible", {"server_id": self.serverid})
 
         if len(data) > 0:
@@ -126,13 +130,11 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
     async def auction_team(self, team):
         self.bid_history = [{"buyer": "", "price": 0}]
 
-        m = await self.ctx.send(f"{team}: current price: {self.bid_history[0]["price"]}; current buyer: {self.bid_history[0]["buyer"]}")
-        self.countdown_message = await self.ctx.send(f"Time left to bid: {self.AUCTIONTIME}")
+        m = await self.ctx.send(self.gen_auction_message(team, self.bid_history, self.AUCTIONTIME))
 
-        self.current_countdown = asyncio.create_task(self.countdown())
+        self.current_countdown = asyncio.create_task(self.countdown(team, m))
         while not await self.current_countdown:
-            await m.edit(content=f"{team}: current price: {self.bid_history[0]["price"]}; current buyer: {self.bid_history[0]["buyer"]}")
-            self.current_countdown = asyncio.create_task(self.countdown())
+            self.current_countdown = asyncio.create_task(self.countdown(team, m))
         
         if buyer := self.bid_history[0]["buyer"]:
             self.money[buyer] -= self.bid_history[0]["price"]
@@ -140,23 +142,32 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
             self.players[buyer].append("frc"+team)
 
             if loser := next((b["buyer"] for b in self.bid_history if b["buyer"] != buyer), None):
-                self.money[loser] -= math.floor(self.bid_history[1]["price"]/2)
+                self.money[loser] -= math.floor(self.bid_history[1]["price"]/PUNISHMENT)
                 await self.ctx.send(f'''{loser} it's called first robotics competition not second robotics competition
-looks like you'll have to pay {math.floor(self.bid_history[1]["price"]/2)} scootbucks''')
+looks like you'll have to pay {math.floor(self.bid_history[1]["price"]/PUNISHMENT)} scootbucks''')
         else:
             await self.ctx.send(f"oof no one wanted {team}")
         await self.line()
+    
+    def gen_auction_message(self, team, bid_history, time):
+        text = f"{team}: current price: {bid_history[0]["price"]}; current buyer: {bid_history[0]["buyer"]}\n"
+        if time > 0:
+            text += f"Time left to bid: {time}"
+        else:
+            text += f"Time expired"
+        return text
 
-    async def countdown(self):
+    async def countdown(self, team, message):
         seconds = self.AUCTIONTIME
         try:
             while seconds > 0:
                 await asyncio.sleep(1)
                 seconds -= 1
-                await self.countdown_message.edit(content=f"Time left to bid: {seconds}")
-            await self.countdown_message.edit(content="Time expired")
+                await message.edit(content=self.gen_auction_message(team, self.bid_history, seconds))
+            await message.edit(content=self.gen_auction_message(team, self.bid_history, seconds))
             return True
         except asyncio.CancelledError:
+            await message.edit(content=self.gen_auction_message(team, self.bid_history, seconds))
             return False
         finally:
             self.current_countdown = False
@@ -166,14 +177,9 @@ looks like you'll have to pay {math.floor(self.bid_history[1]["price"]/2)} scoot
         current_time = time.time()
         if current_time - self.bidtimer < 2:
             return
-        if self.money[ctx.author.name] >= num and (
-            num > self.bid_history[0]["price"]
-              or (
-                self.bid_history[0]["price"] == 5
-                and num >= self.bid_history[0]["price"]
-                and not self.bid_history[0]["buyer"]
-                )
-            ):
+        if len(self.players[ctx.author.name]) >= self.MAXPOOLTEAMS:
+            return
+        if self.money[ctx.author.name] >= num and (num > self.bid_history[0]["price"]):
             self.bid_history.insert(0, {"buyer": ctx.author.name, "price": num})
 
             if self.current_countdown:
@@ -207,17 +213,17 @@ looks like you'll have to pay {math.floor(self.bid_history[1]["price"]/2)} scoot
         self.auctioned = False
     
     async def help(self):
-        message = '''use ?setup to setup the bot. if there was an existing auction result the bot will pull that
-?maxpool [num]: set the max amount of teams each player can pool for the auction
-?poolteams: get a list of all teams in the pool
-?pool [team_num]: pool a team
-?unpool [team_num]: unpool a team you have pooled
-?auction: start the auction
-?b [num] or ?bid [num]: place a bid
-?score: see the scores
-?reset: reset the auction results
-?roster: see team roster
-?webhook [url] use this to set up match updates'''
+        message = f'''use {CCHAR}setup to setup the bot. if there was an existing auction result the bot will pull that
+{CCHAR}maxpool [num]: set the max amount of teams each player can pool for the auction
+{CCHAR}poolteams: get a list of all teams in the pool
+{CCHAR}pool [team_num]: pool a team
+{CCHAR}unpool [team_num]: unpool a team you have pooled
+{CCHAR}auction: start the auction
+{CCHAR}b [num] or ?bid [num]: place a bid
+{CCHAR}score: see the scores
+{CCHAR}reset: reset the auction results
+{CCHAR}roster: see team roster
+{CCHAR}webhook [url] use this to set up match updates'''
 
         await self.ctx.send(message)
     

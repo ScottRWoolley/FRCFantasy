@@ -21,7 +21,7 @@ def main():
     intents.voice_states = True
     intents.members = True
 
-    bot = commands.Bot(command_prefix="?", intents=intents)
+    bot = commands.Bot(command_prefix=os.getenv("COMMAND_CHAR"), intents=intents)
     client = discord.Client(intents=intents)
 
     with open("jsons/team_keys.json", "r") as f:
