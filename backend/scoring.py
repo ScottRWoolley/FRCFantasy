@@ -33,22 +33,22 @@ def get_scores(team_key):
         events.append(ALL_EVENTS[k])
 
     events = sorted(events, key=convert_date_to_int)
-    valid_events = list(filter(lambda e: e["event_type"] != 99, events))
-    #valid_events = events
+    #valid_events = list(filter(lambda e: e["event_type"] != 99, events))
+    valid_events = events
 
-    first_2 = []
-    last = []
-    mult_events = []
-    if len(valid_events) >= 2:
-        first_2 = valid_events[0:2]
-        if len(valid_events) > 2:
-            if valid_events[-1]["key"] != f"{YEAR}cmptx":
-                last = [valid_events[-1]]
-            else:
-                last = [valid_events[-2]]
-            if len(valid_events) > 3:
-                mult_events = valid_events[2:-2]
-    valid_events = first_2 + last
+    # first_2 = []
+    # last = []
+    # mult_events = []
+    # if len(valid_events) >= 2:
+    #     first_2 = valid_events[0:2]
+    #     if len(valid_events) > 2:
+    #         if valid_events[-1]["key"] != f"{YEAR}cmptx":
+    #             last = [valid_events[-1]]
+    #         else:
+    #             last = [valid_events[-2]]
+    #         if len(valid_events) > 3:
+    #             mult_events = valid_events[2:-2]
+    # valid_events = first_2 + last
 
     events = list(map(lambda e: e["key"], events))
     valid_events = list(map(lambda e: e["key"], valid_events))
@@ -71,7 +71,6 @@ def get_team_event_score(team, event_key, event_status, event_matches):
     total = 0.0
 
     for match in event_matches:
-        # try:
         alliances = match["alliances"]
 
         if team in alliances["red"]["team_keys"]:
@@ -82,11 +81,6 @@ def get_team_event_score(team, event_key, event_status, event_matches):
             continue
 
         total += calculate_match_score(match, side)
-
-        # except Exception as err:
-        #     print(err)
-        #     print(team)
-        #     continue
     
     if event_status:  
         total += calc_event_playoff_bonus(event_key, event_status)
