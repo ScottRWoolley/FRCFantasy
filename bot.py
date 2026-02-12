@@ -1,16 +1,14 @@
-import discord
-from discord.ext import commands
 import random
 import asyncio
 from backend import send
-import math
-from pymongo import MongoClient
 from backend import mongoer
 import time
 import os
 
 PUNISHMENT = 4 # Divide losing bid by how much
 CCHAR = os.getenv("COMMAND_CHAR") # ? or !
+NUM_DAYS = 3 # number of days of auction
+AUCTION_TIME = 120#NUM_DAYS * 3600 * 24
 
 class Bot:
     def __init__(self, ctx):
@@ -18,6 +16,7 @@ class Bot:
         self.ctx = ctx
         self.AUCTIONTIME = 10
         self.bidtimer = time.time()
+        self.stored_dms = []
         
     
     async def setup(self):
@@ -87,15 +86,24 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
             for member in self.ctx.guild.members if not member.bot
         }
 
+        self.auction_prices = {}
         for team in pooledteams:
-            await self.auction_team(team)
-            text = "team rosters:\n"
-            for player, teams in self.players.items():
-                text += f"{player} - {self.money[player]}: {", ".join(list(map(lambda x: x[3:], teams)))}\n"
-            await self.ctx.send(text)
-            await self.line()
+            self.auction_prices[team] = {"current_price": 0, "bids": []}
         
-        await self.ctx.send("The auction has ended!")
+        await self.end_auction
+
+    async def end_auction(self):
+        wait_time = AUCTION_TIME
+        timestamp = int(time.time()) + wait_time
+        auction_message = await self.ctx.send(f"Auction ends <t:{timestamp}:R>")
+        await asyncio.sleep(wait_time)
+        await auction_message.edit(content="Auction has ended")
+
+        for team, bid_history in self.auction_prices:
+            if len(bid_history["bids"]) > 0:
+                player = bid_history["bids"][-1]["user"]
+                self.players[player].append("frc" + team)
+                await self.ctx.send(f"{player} bought {team} for {bid_history["current_price"]}")
 
         mongoer.insert(
             "bible",
@@ -127,68 +135,30 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
 
         self.auctioned = True
     
-    async def auction_team(self, team):
-        self.bid_history = [{"buyer": "", "price": 0}]
-
-        m = await self.ctx.send(self.gen_auction_message(team, self.bid_history, self.AUCTIONTIME))
-
-        self.current_countdown = asyncio.create_task(self.countdown(team, m))
-        while not await self.current_countdown:
-            self.current_countdown = asyncio.create_task(self.countdown(team, m))
-        
-        if buyer := self.bid_history[0]["buyer"]:
-            self.money[buyer] -= self.bid_history[0]["price"]
-            await self.ctx.send(f"sold! team {team} for {self.bid_history[0]["price"]} to {buyer}")
-            self.players[buyer].append("frc"+team)
-
-            if loser := next((b["buyer"] for b in self.bid_history if b["buyer"] != buyer), None):
-                self.money[loser] -= math.floor(self.bid_history[1]["price"]/PUNISHMENT)
-                await self.ctx.send(f'''{loser} it's called first robotics competition not second robotics competition
-looks like you'll have to pay {math.floor(self.bid_history[1]["price"]/PUNISHMENT)} scootbucks''')
+    async def send_dm(self, ctx):
+        m = await ctx.author.send(f"hi please reply to this message with your command")
+        self.stored_dms.append(m.message_id)
+    
+    async def parse_message(self, message):
+        split_message = message.content.split()
+        if split_message[0][1:] == "bid":
+            confirmation = await self.bid(message.author.name, split_message[1], split_message[2])
+        await message.reference.edit(content=confirmation)
+        del self.stored_dms[message.reference.message_id]
+    
+    async def bid(self, user, team_number, price):
+        if not self.auction:
+            return "theres no auction happening right now"
+        if self.auction_prices[team_number]["current_price"] < price and self.money[user] >= price:
+            self.auction_prices[team_number]["bids"].append(
+                {"user": user,
+                 "price": price}
+            )
+            self.money[user] -= price
+            self.auction_prices[team_number]["current_price"] = price
+            return f"ok you placed a bid and now you have {self.money[user]} money left"
         else:
-            await self.ctx.send(f"oof no one wanted {team}")
-        await self.line()
-    
-    def gen_auction_message(self, team, bid_history, time):
-        text = f"{team}: current price: {bid_history[0]["price"]}; current buyer: {bid_history[0]["buyer"]}\n"
-        if time > 0:
-            text += f"Time left to bid: {time}"
-        else:
-            text += f"Time expired"
-        return text
-
-    async def countdown(self, team, message):
-        seconds = self.AUCTIONTIME
-        try:
-            while seconds > 0:
-                await asyncio.sleep(1)
-                seconds -= 1
-                await message.edit(content=self.gen_auction_message(team, self.bid_history, seconds))
-            await message.edit(content=self.gen_auction_message(team, self.bid_history, seconds))
-            return True
-        except asyncio.CancelledError:
-            await message.edit(content=self.gen_auction_message(team, self.bid_history, seconds))
-            return False
-        finally:
-            self.current_countdown = False
-    
-    async def bid(self, ctx, num):
-        await ctx.message.delete()
-        current_time = time.time()
-        if current_time - self.bidtimer < 2:
-            return
-        if len(self.players[ctx.author.name]) >= self.MAXPOOLTEAMS:
-            return
-        if self.money[ctx.author.name] >= num and (num > self.bid_history[0]["price"]):
-            self.bid_history.insert(0, {"buyer": ctx.author.name, "price": num})
-
-            if self.current_countdown:
-                self.current_countdown.cancel()
-
-        self.bidtimer = time.time()
-    
-    async def line(self):
-        await self.ctx.send("---------------------------------------")
+            return "you did something wrong and now you have to generate a new message womp womp"
     
     async def get_score(self):
         scores = send.score(self.serverid)
@@ -219,7 +189,7 @@ looks like you'll have to pay {math.floor(self.bid_history[1]["price"]/PUNISHMEN
 {CCHAR}pool [team_num]: pool a team
 {CCHAR}unpool [team_num]: unpool a team you have pooled
 {CCHAR}auction: start the auction
-{CCHAR}b [num] or ?bid [num]: place a bid
+{CCHAR}b [num] or {CCHAR}bid [team_num] [price]: place a bid
 {CCHAR}score: see the scores
 {CCHAR}reset: reset the auction results
 {CCHAR}roster: see team roster
@@ -232,3 +202,48 @@ looks like you'll have to pay {math.floor(self.bid_history[1]["price"]/PUNISHMEN
         for player, teams in self.players.items():
             text += f"{player}: {", ".join(list(map(lambda x: x[3:], teams)))}\n"
         await self.ctx.send(text)
+    
+    #     async def auction_team(self, team):
+#         self.bid_history = [{"buyer": "", "price": 0}]
+
+#         m = await self.ctx.send(self.gen_auction_message(team, self.bid_history, self.AUCTIONTIME))
+
+#         self.current_countdown = asyncio.create_task(self.countdown(team, m))
+#         while not await self.current_countdown:
+#             self.current_countdown = asyncio.create_task(self.countdown(team, m))
+        
+#         if buyer := self.bid_history[0]["buyer"]:
+#             self.money[buyer] -= self.bid_history[0]["price"]
+#             await self.ctx.send(f"sold! team {team} for {self.bid_history[0]["price"]} to {buyer}")
+#             self.players[buyer].append("frc"+team)
+
+#             if loser := next((b["buyer"] for b in self.bid_history if b["buyer"] != buyer), None):
+#                 self.money[loser] -= math.floor(self.bid_history[1]["price"]/PUNISHMENT)
+#                 await self.ctx.send(f'''{loser} it's called first robotics competition not second robotics competition
+# looks like you'll have to pay {math.floor(self.bid_history[1]["price"]/PUNISHMENT)} scootbucks''')
+#         else:
+#             await self.ctx.send(f"oof no one wanted {team}")
+#         await self.line()
+    
+#     def gen_auction_message(self, team, bid_history, time):
+#         text = f"{team}: current price: {bid_history[0]["price"]}; current buyer: {bid_history[0]["buyer"]}\n"
+#         if time > 0:
+#             text += f"Time left to bid: {time}"
+#         else:
+#             text += f"Time expired"
+#         return text
+
+#     async def countdown(self, team, message):
+#         seconds = self.AUCTIONTIME
+#         try:
+#             while seconds > 0:
+#                 await asyncio.sleep(1)
+#                 seconds -= 1
+#                 await message.edit(content=self.gen_auction_message(team, self.bid_history, seconds))
+#             await message.edit(content=self.gen_auction_message(team, self.bid_history, seconds))
+#             return True
+#         except asyncio.CancelledError:
+#             await message.edit(content=self.gen_auction_message(team, self.bid_history, seconds))
+#             return False
+#         finally:
+#             self.current_countdown = False

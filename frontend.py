@@ -37,6 +37,21 @@ def main():
     async def on_ready():
         print(f'Bot logged in as {bot.user}')
     
+    @bot.event
+    async def on_message(message):
+        if message.author == bot.user:
+            return
+
+        if isinstance(message.channel, discord.DMChannel) and message.reference:
+            for server, game in runningGames:
+                if message.reference.message_id in game.stored_dms:
+                    await game.parse_message(message)
+    
+    @bot.command()
+    async def dm(ctx):
+        if ctx.guild:
+            await runningGames[get_server_id(ctx)].send_dm(ctx)
+
     @bot.command()
     async def setup(ctx):
         if ctx.guild:
