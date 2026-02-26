@@ -1,7 +1,8 @@
 from pymongo import MongoClient
 import os
+from env_vars import *
 
-client = MongoClient(os.environ['MongoClient'], 1678)
+client = MongoClient(MONGOCLIENT, 1678)
 db = client.Fantasy
 bible = db["bible"]
 
