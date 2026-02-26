@@ -166,6 +166,16 @@ def main():
                 await ctx.send("you are now breathing manually")
             else:
                 await ctx.send("hmm something went wrong")
+    
+    @bot.command()
+    async def auction_days(ctx, num):
+        if ctx.guild:
+            server_id = get_server_id(ctx)
+            try:
+                val = int(val)
+                await runningGames[server_id].auction_days(num)
+            except:
+                pass
 
     bot.run(TOKEN)
     
