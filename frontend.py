@@ -7,21 +7,19 @@ from backend import scoring, send
 import utils
 from pymongo import MongoClient
 from backend import mongoer
+from env_vars import *
 
 def main():
 
 
-    content = os.getenv("DISCORD_TOKEN")
-
-
-    TOKEN = content
+    TOKEN = DISCORD_TOKEN
 
     intents = discord.Intents.default()
     intents.message_content = True
     intents.voice_states = True
     intents.members = True
 
-    bot = commands.Bot(command_prefix=os.getenv("COMMAND_CHAR"), intents=intents)
+    bot = commands.Bot(COMMAND_CHAR, intents=intents)
     client = discord.Client(intents=intents)
 
     with open("jsons/team_keys.json", "r") as f:
@@ -39,13 +37,15 @@ def main():
     
     @bot.event
     async def on_message(message):
+        await bot.process_commands(message)
         if message.author == bot.user:
             return
 
         if isinstance(message.channel, discord.DMChannel) and message.reference:
-            for server, game in runningGames:
+            for server, game in runningGames.items():
                 if message.reference.message_id in game.stored_dms:
-                    await game.parse_message(message)
+                    message_ref = await message.channel.fetch_message(message.reference.message_id)
+                    await game.parse_message(message, message_ref)
     
     @bot.command()
     async def dm(ctx):

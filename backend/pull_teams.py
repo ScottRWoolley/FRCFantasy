@@ -1,8 +1,9 @@
 import requests
 import json
+from env_vars import TBA_KEY
 
 url = f"https://www.thebluealliance.com/api/v3/teams/2026/"
-api_key = 'gdMGUFHnD8igdevFP5RZOKIFtFAiupOuhBIPMIrw3jpsQgYlA74wKU5uOnThpQ2V'  
+api_key = TBA_KEY 
 headers = { 'X-TBA-Auth-Key': api_key }
 teams = []
 index = 0

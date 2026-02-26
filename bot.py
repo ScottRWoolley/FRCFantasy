@@ -4,9 +4,10 @@ from backend import send
 from backend import mongoer
 import time
 import os
+from env_vars import *
 
 PUNISHMENT = 4 # Divide losing bid by how much
-CCHAR = os.getenv("COMMAND_CHAR") # ? or !
+CCHAR = COMMAND_CHAR
 NUM_DAYS = 3 # number of days of auction
 AUCTION_TIME = 120#NUM_DAYS * 3600 * 24
 
@@ -90,7 +91,7 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
         for team in pooledteams:
             self.auction_prices[team] = {"current_price": 0, "bids": []}
         
-        await self.end_auction
+        await self.end_auction()
 
     async def end_auction(self):
         wait_time = AUCTION_TIME
@@ -99,7 +100,7 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
         await asyncio.sleep(wait_time)
         await auction_message.edit(content="Auction has ended")
 
-        for team, bid_history in self.auction_prices:
+        for team, bid_history in self.auction_prices.items():
             if len(bid_history["bids"]) > 0:
                 player = bid_history["bids"][-1]["user"]
                 self.players[player].append("frc" + team)
@@ -136,19 +137,22 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
         self.auctioned = True
     
     async def send_dm(self, ctx):
-        m = await ctx.author.send(f"hi please reply to this message with your command")
-        self.stored_dms.append(m.message_id)
+        m = await ctx.author.send(f"hi please reply to this message with your command\nbid [team num] [money]\nprice [team num]")
+        self.stored_dms.append(m.id)
     
-    async def parse_message(self, message):
+    async def parse_message(self, message, m_ref):
         split_message = message.content.split()
-        if split_message[0][1:] == "bid":
-            confirmation = await self.bid(message.author.name, split_message[1], split_message[2])
-        await message.reference.edit(content=confirmation)
-        del self.stored_dms[message.reference.message_id]
+        if split_message[0] in ["bid", "b"]:
+            confirmation = self.bid(message.author.name, split_message[1], split_message[2])
+        elif split_message[0] == "price":
+            confirmation = self.see_price(split_message[1])
+        await m_ref.edit(content=confirmation)
+        self.stored_dms.remove(m_ref.id)
     
-    async def bid(self, user, team_number, price):
+    def bid(self, user, team_number, price):
         if not self.auction:
             return "theres no auction happening right now"
+        price = int(price)
         if self.auction_prices[team_number]["current_price"] < price and self.money[user] >= price:
             self.auction_prices[team_number]["bids"].append(
                 {"user": user,
@@ -159,6 +163,12 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
             return f"ok you placed a bid and now you have {self.money[user]} money left"
         else:
             return "you did something wrong and now you have to generate a new message womp womp"
+    
+    def see_price(self, team_number):
+        if not self.auction:
+            return "theres no auction happening right now"
+        
+        return self.auction_prices[team_number]["current_price"]
     
     async def get_score(self):
         scores = send.score(self.serverid)
@@ -176,6 +186,10 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
         mongoer.delete("bible", {"server_id": self.serverid})
         
         self.players = {
+            member.name: []
+            for member in self.ctx.guild.members if not member.bot
+        }
+        self.teampool = {
             member.name: []
             for member in self.ctx.guild.members if not member.bot
         }
