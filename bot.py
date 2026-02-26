@@ -140,7 +140,7 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
         self.auctioned = True
     
     async def send_dm(self, ctx):
-        m = await ctx.author.send(f"hi please reply to this message with your command\nbid [team num] [money]\nprice [team num]\nprice [team num]\nall_prices to see everything")
+        m = await ctx.author.send(f"hi please reply to this message with your command\nbid [team num] [money]\nprice [team num]\nall_prices to see everything")
         self.stored_dms.append(m.id)
     
     async def parse_message(self, message, m_ref):
