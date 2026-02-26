@@ -9,14 +9,13 @@ from env_vars import *
 PUNISHMENT = 4 # Divide losing bid by how much
 CCHAR = COMMAND_CHAR
 NUM_DAYS = 3 # number of days of auction
-AUCTION_TIME = 120#NUM_DAYS * 3600 * 24
 
 class Bot:
     def __init__(self, ctx):
         self.serverid = str(ctx.guild.id)
         self.ctx = ctx
-        self.AUCTIONTIME = 10
-        self.bidtimer = time.time()
+        self.AUCTION_TIME = NUM_DAYS * 3600 * 24
+        # self.bidtimer = time.time()
         self.stored_dms = []
         
     
@@ -44,6 +43,10 @@ class Bot:
             self.auctioned = False
         print(self.teampool)
         self.MAXPOOLTEAMS = 5
+    
+    async def auction_days(self, num):
+        AUCTION_TIME = num * 3600 * 24
+        await self.ctx.send(f"ok auction lasts {num} days now")
     
     async def setmaxpool(self, num):
         self.MAXPOOLTEAMS = num
@@ -94,7 +97,7 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
         await self.end_auction()
 
     async def end_auction(self):
-        wait_time = AUCTION_TIME
+        wait_time = self.AUCTION_TIME
         timestamp = int(time.time()) + wait_time
         auction_message = await self.ctx.send(f"Auction ends <t:{timestamp}:R>")
         await asyncio.sleep(wait_time)
@@ -137,7 +140,7 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
         self.auctioned = True
     
     async def send_dm(self, ctx):
-        m = await ctx.author.send(f"hi please reply to this message with your command\nbid [team num] [money]\nprice [team num]")
+        m = await ctx.author.send(f"hi please reply to this message with your command\nbid [team num] [money]\nprice [team num]\nprice [team num]\nall_prices to see everything")
         self.stored_dms.append(m.id)
     
     async def parse_message(self, message, m_ref):
@@ -146,6 +149,8 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
             confirmation = self.bid(message.author.name, split_message[1], split_message[2])
         elif split_message[0] == "price":
             confirmation = self.see_price(split_message[1])
+        elif split_message[0] == "all_prices":
+            confirmation = self.show_prices()
         await m_ref.edit(content=confirmation)
         self.stored_dms.remove(m_ref.id)
     
@@ -169,6 +174,15 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
             return "theres no auction happening right now"
         
         return self.auction_prices[team_number]["current_price"]
+
+    def show_prices(self):
+        if not self.auction:
+            return "theres no auction happening right now"
+        
+        text = "prices:\n"
+        for team, prices in self.auction_prices.items():
+            text += f"{team}: {prices["current_price"]}\n"
+        return text
     
     async def get_score(self):
         scores = send.score(self.serverid)
