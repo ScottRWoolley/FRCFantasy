@@ -82,8 +82,7 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
         if self.auctioned:
             return
         pooledteams = sum(self.teampool.values(), [])
-        random.seed()
-        random.shuffle(pooledteams)
+        pooledteams = sorted(pooledteams)
 
         self.money = {
             member.name: 100
@@ -140,7 +139,7 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
         self.auctioned = True
     
     async def send_dm(self, ctx):
-        m = await ctx.author.send(f"hi please reply to this message with your command\nbid [team num] [money]\nprice [team num]\nall_prices to see everything")
+        m = await ctx.author.send(f"hi please reply to this message with your command\nbid [team num] [money]\nprice [team num]\nall_prices to see everything\nhowrichami to see how much money you have")
         self.stored_dms.append(m.id)
     
     async def parse_message(self, message, m_ref):
@@ -150,7 +149,9 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
         elif split_message[0] == "price":
             confirmation = self.see_price(split_message[1])
         elif split_message[0] == "all_prices":
-            confirmation = self.show_prices()
+            confirmation = self.show_prices(message.author.name)
+        elif split_message[0] == "howrichami":
+            confirmation = self.see_money(message.author.name)
         await m_ref.edit(content=confirmation)
         self.stored_dms.remove(m_ref.id)
     
@@ -159,6 +160,8 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
             return "theres no auction happening right now"
         price = int(price)
         if self.auction_prices[team_number]["current_price"] < price and self.money[user] >= price:
+            if len(self.auction_prices[team_number]["bids"]) > 0:
+                self.money[self.auction_prices["team_number"]["bids"][-1]["user"]] += self.auction_prices[team_number]["current_price"]
             self.auction_prices[team_number]["bids"].append(
                 {"user": user,
                  "price": price}
@@ -175,14 +178,21 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
         
         return self.auction_prices[team_number]["current_price"]
 
-    def show_prices(self):
+    def show_prices(self, user):
         if not self.auction:
             return "theres no auction happening right now"
         
         text = "prices:\n"
         for team, prices in self.auction_prices.items():
-            text += f"{team}: {prices["current_price"]}\n"
+            text += f"{team}: {prices["current_price"]}"
+            if len(prices["bids"]) > 0:
+                if prices["bids"][-1]["user"] == user:
+                    text += " - you currently own this team"
+            text += "\n"
         return text
+    
+    def see_money(self, user):
+        return f"you are {self.money[user]} money poor"
     
     async def get_score(self):
         scores = send.score(self.serverid)

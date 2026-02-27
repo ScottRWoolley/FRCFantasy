@@ -172,7 +172,7 @@ def main():
         if ctx.guild:
             server_id = get_server_id(ctx)
             try:
-                val = int(val)
+                val = float(val)
                 await runningGames[server_id].auction_days(num)
             except:
                 pass
