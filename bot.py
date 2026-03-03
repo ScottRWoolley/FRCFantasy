@@ -45,7 +45,7 @@ class Bot:
         self.MAXPOOLTEAMS = 5
     
     async def auction_days(self, num):
-        AUCTION_TIME = num * 3600 * 24
+        self.AUCTION_TIME = num * 3600 * 24
         await self.ctx.send(f"ok auction lasts {num} days now")
     
     async def setmaxpool(self, num):
@@ -161,7 +161,7 @@ you personally have contributed:{", ".join(authorpooledteams)}\nyou can contribu
         price = int(price)
         if self.auction_prices[team_number]["current_price"] < price and self.money[user] >= price:
             if len(self.auction_prices[team_number]["bids"]) > 0:
-                self.money[self.auction_prices["team_number"]["bids"][-1]["user"]] += self.auction_prices[team_number]["current_price"]
+                self.money[self.auction_prices[team_number]["bids"][-1]["user"]] += self.auction_prices[team_number]["current_price"]
             self.auction_prices[team_number]["bids"].append(
                 {"user": user,
                  "price": price}
