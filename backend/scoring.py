@@ -33,7 +33,7 @@ def get_scores(team_key):
         events.append(ALL_EVENTS[k])
 
     events = sorted(events, key=convert_date_to_int)
-    valid_events = list(filter(lambda e: e["event_type"] != 99, events))
+    valid_events = list(filter(lambda e: e["event_type"] != 99 and e["event_type"] != 100, events))
 
     first_2 = []
     last = []
@@ -115,8 +115,8 @@ def calculate_qm_score(match, color):
         return round(match["alliances"][color]["score"] * TELE_WEIGHT, 2)
     winning = match.get("winning_alliance")
 
-    auto_score = breakdown[color]["autoPoints"]
-    tele_points = breakdown[color]["teleopPoints"]
+    auto_score = breakdown[color]["totalAutoPoints"]
+    tele_points = breakdown[color]["totalTeleopPoints"]
     rp = breakdown[color]["rp"]
     win = QM_WIN if winning == color else 0
 
@@ -132,8 +132,8 @@ def calculate_playoff_score(match, color):
     winning = match.get("winning_alliance")
     won = winning == color
 
-    auto_score = breakdown[color]["autoPoints"]
-    tele_points = breakdown[color]["teleopPoints"]
+    auto_score = breakdown[color]["totalAutoPoints"]
+    tele_points = breakdown[color]["totalTeleopPoints"]
     win = PLAYOFF_WIN if won else 0
 
     # weighted formula
@@ -208,8 +208,7 @@ def calc_event_playoff_bonus(key, event):
         if event["playoff"]["status"] == "won" and key == f"{YEAR}cmptx":
             total += CHAMPS_WIN_BONUS
     except Exception as err:
-        print(err)
-        print(key)
+        pass
     return total
 
 def convert_date_to_int(e):
