@@ -3,16 +3,13 @@ import json
 import os
 import time
 
-
 def find_events(team_key, year):
     file_path = f"data/{team_key}/{year}.json"
 
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    TBA_KEY = os.getenv("TBA_KEY")
 
-    with open("api_key.txt", "r") as file:
-        api_key = file.read().strip()
-
-    headers = {'X-TBA-Auth-Key': api_key}
+    headers = {'X-TBA-Auth-Key': TBA_KEY}
 
     url = f"https://www.thebluealliance.com/api/v3/team/{team_key}/events/{year}/simple"
     response = requests.get(url, headers=headers)
@@ -74,15 +71,15 @@ def read_events(file_path):
     return events
 
 
-def pull_team_matches(team_key, year="2025"):
+def pull_team_matches(team_key, year="2026"):
     url = f"https://www.thebluealliance.com/api/v3/team/{team_key}/matches/{year}"
     return tba_request(url)
 
-def pull_team_statuses(team_key, year="2025"):
+def pull_team_statuses(team_key, year="2026"):
     url = f"https://www.thebluealliance.com/api/v3/team/{team_key}/events/{year}/statuses"
     return tba_request(url)
 
-def pull_all_event_info(year="2025"):
+def pull_all_event_info(year="2026"):
     url = f"https://www.thebluealliance.com/api/v3/events/{year}/simple"
     response = tba_request(url)
     final = {}
@@ -95,7 +92,7 @@ def pull_all_event_info(year="2025"):
 def tba_request(url):
     import requests
     tba_key = os.getenv("TBA_KEY")
-    year = "2025"
+    year = "2026"
     headers = {'X-TBA-Auth-Key': tba_key}
 
     response = requests.get(url, headers=headers)
@@ -107,3 +104,5 @@ def tba_request(url):
     else:
         print(f"Error {response.status_code}: {response.text}")
         return False
+
+pull_all_event_info()

@@ -3,24 +3,24 @@ import os
 from backend import pull_data
 from backend import mongoer
 
-AUTO_WEIGHT = 0.25
-TELE_WEIGHT = 0.085
-RP_WEIGHT = 0.75
+AUTO_WEIGHT = 0.025
+TELE_WEIGHT = 0.0125
+RP_WEIGHT = 1
 QM_WIN = 1.5
 PLAYOFF_WIN = 0
-PLAYOFF_AUTO = 0.3
-PLAYOFF_TELE = 0.1
-R0 = 300
-R1 = -270
-R2 = -240
-R3 = -150
-R4 = -90
-R5 = -30
+PLAYOFF_AUTO = 0.02
+PLAYOFF_TELE = 0.01
+R0 = 100
+R1 = -90
+R2 = -80
+R3 = -50
+R4 = -30
+R5 = -10
 
-CHAMPS_WIN_BONUS = 100
+CHAMPS_WIN_BONUS = 300
 
 #TODO change to a time thing at some point :)
-YEAR = "2025"
+YEAR = "2026"
 
 with open("jsons/all_events.json", "r") as f:
     ALL_EVENTS = json.load(f)
@@ -33,26 +33,25 @@ def get_scores(team_key):
         events.append(ALL_EVENTS[k])
 
     events = sorted(events, key=convert_date_to_int)
-    #valid_events = list(filter(lambda e: e["event_type"] != 99, events))
-    valid_events = events
+    valid_events = list(filter(lambda e: e["event_type"] != 99, events))
 
-    # first_2 = []
-    # last = []
-    # mult_events = []
-    # if len(valid_events) >= 2:
-    #     first_2 = valid_events[0:2]
-    #     if len(valid_events) > 2:
-    #         if valid_events[-1]["key"] != f"{YEAR}cmptx":
-    #             last = [valid_events[-1]]
-    #         else:
-    #             last = [valid_events[-2]]
-    #         if len(valid_events) > 3:
-    #             mult_events = valid_events[2:-2]
-    # valid_events = first_2 + last
+    first_2 = []
+    last = []
+    mult_events = []
+    if len(valid_events) >= 2:
+        first_2 = valid_events[0:2]
+        if len(valid_events) > 2:
+            if valid_events[-1]["key"] != f"{YEAR}cmptx":
+                last = [valid_events[-1]]
+            else:
+                last = [valid_events[-2]]
+            if len(valid_events) > 3:
+                mult_events = valid_events[2:-2]
+    valid_events = first_2 + last
 
     events = list(map(lambda e: e["key"], events))
     valid_events = list(map(lambda e: e["key"], valid_events))
-    valid_events.append("2025cmptx") # won't break anything in theory
+    valid_events.append("2026cmptx") # won't break anything in theory
 
     total = 0.0
 
