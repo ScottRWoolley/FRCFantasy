@@ -62,15 +62,15 @@ def leaderboard_change(previous, new, item):
     previous_index = previous.index(item)
     change = new_index-previous_index
     if change > 1:
-        return EMOJIS[4] + str(change)
+        return EMOJIS[4]
     elif change == 1:
-        return EMOJIS[3] + str(change)
+        return EMOJIS[3]
     elif change == 0:
-        return EMOJIS[2] + str(change)
+        return EMOJIS[2]
     elif change == -1:
-        return EMOJIS[1] + str(change)
+        return EMOJIS[1]
     else:
-        return EMOJIS[0] + str(change)
+        return EMOJIS[0]
 
 def add_dashes_until_length(string, length):
     strlength = len(string)

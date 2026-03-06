@@ -4,7 +4,7 @@ import json
 import send
 import os
 
-year = "2025"
+year = "2026"
 
 teamlist = ["frc1678","frc8768","frc6662","frc254"]
 
