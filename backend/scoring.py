@@ -25,9 +25,9 @@ YEAR = "2026"
 with open("jsons/all_events.json", "r") as f:
     ALL_EVENTS = json.load(f)
 
-def get_scores(team_key):
-    matches = pull_data.pull_team_matches(team_key)
-    event_statuses = pull_data.pull_team_statuses(team_key)
+async def get_scores(team_key, session):
+    matches = await pull_data.pull_team_matches(team_key, session)
+    event_statuses = await pull_data.pull_team_statuses(team_key, session)
     events = []
     for k, e in event_statuses.items():
         events.append(ALL_EVENTS[k])
@@ -87,10 +87,10 @@ def get_team_event_score(team, event_key, event_status, event_matches):
     return round(total, 2)
 
 
-def calculate_team_scores(teams):
+async def calculate_team_scores(teams, session):
     team_scores = dict.fromkeys(teams, 0)
     for team in teams:
-        total_score = get_scores(team)
+        total_score = await get_scores(team, session)
         team_scores[team] = total_score
 
     return team_scores
@@ -188,10 +188,10 @@ def calc_tim_scores(match):
             scores[team] = alliance_score
     return scores
 
-def calc_all_teams():
+async def calc_all_teams(session):
     all_teams = mongoer.find("all_teams")[0]["data"]
     
-    scores = calculate_team_scores(all_teams)
+    scores = await calculate_team_scores(all_teams, session)
     save_scores_dict(scores)
 
 def update_teams(teams, match):

@@ -71,13 +71,13 @@ def read_events(file_path):
     return events
 
 
-def pull_team_matches(team_key, year="2026"):
+async def pull_team_matches(team_key, session, year="2026"):
     url = f"https://www.thebluealliance.com/api/v3/team/{team_key}/matches/{year}"
-    return tba_request(url)
+    return await a_tba_request(url, session)
 
-def pull_team_statuses(team_key, year="2026"):
+async def pull_team_statuses(team_key, session, year="2026"):
     url = f"https://www.thebluealliance.com/api/v3/team/{team_key}/events/{year}/statuses"
-    return tba_request(url)
+    return await a_tba_request(url, session)
 
 def pull_all_event_info(year="2026"):
     url = f"https://www.thebluealliance.com/api/v3/events/{year}/simple"
@@ -88,6 +88,14 @@ def pull_all_event_info(year="2026"):
             final[doc["key"]] = doc
         with open("jsons/all_events.json", "w") as f:
             json.dump(final, f, indent=4)
+
+async def a_tba_request(url, session):
+    tba_key = os.getenv("TBA_KEY")
+    year = "2026"
+    session.headers['X-TBA-Auth-Key']= tba_key
+
+    async with session.get(url) as r:
+        return await r.json()
 
 def tba_request(url):
     import requests

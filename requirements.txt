@@ -42,3 +42,4 @@ watchfiles==1.1.1
 websockets==15.0.1
 discord
 python-dotenv
+aiohttp
