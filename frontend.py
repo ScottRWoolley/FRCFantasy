@@ -8,6 +8,7 @@ import utils
 from pymongo import MongoClient
 from backend import mongoer
 from env_vars import *
+import aiohttp
 
 def main():
 
@@ -141,8 +142,10 @@ def main():
     
     @bot.command()
     async def recalc(ctx):
-        scoring.calc_all_teams()
+        session = aiohttp.ClientSession()
+        await scoring.calc_all_teams(session)
         await ctx.send("recalculated")
+        await session.close()
     
     @bot.command()
     async def roster(ctx):
