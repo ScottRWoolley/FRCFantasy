@@ -4,6 +4,8 @@ import requests
 import os
 from backend import mongoer
 import copy
+import asyncio
+from tba_requests import tba_request
 
 EMOJIS = [":arrow_double_down:", ":arrow_down_small:", ":heavy_minus_sign:", ":arrow_up_small:", ":arrow_double_up:"]
 
@@ -24,6 +26,12 @@ def score(channel_id):
         },
     }"""
     return result
+
+async def pull_match_score(match_key):
+    await asyncio.sleep(60)
+
+    match_data = tba_request(f"/match/{match_key}")
+    
 
 def send_score_updates(teams, match):
     scores = scoring.update_teams(teams, match)
